@@ -16,6 +16,7 @@ from helpers import logger
 
 
 def get_item(rdo, task):
+    # TODO: look for all the associations to scrape
     # Get all possible urls
     json_urls = {"urls": ["https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=1",
                           "https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=2",
