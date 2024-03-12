@@ -13,15 +13,16 @@ from lblod.harvester import collection_has_collected_files, create_results_conta
 from lblod.job import update_task_status
 from sudo_query import update_sudo
 from helpers import logger
+from lblod.data_fetcher import fetch_vcodes, fetch_context
+from lblod.detail_fetcher import fetch_detail_urls
 
 
 def get_item(rdo, task):
-    # TODO: look for all the associations to scrape
-    # Get all possible urls
-    json_urls = {"urls": ["https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=1",
-                          "https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=2",
-                          "https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=3"]}
-    return json.dumps(json_urls)
+    vcodes = fetch_vcodes()
+    data = fetch_detail_urls(vcodes)
+    context = fetch_context()
+    all_data = {"@context": context,  "verenigingen": data}
+    return json.dumps(all_data)
 
 
 def process_item(content, rdo):

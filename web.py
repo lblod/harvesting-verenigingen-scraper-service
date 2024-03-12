@@ -45,7 +45,8 @@ def delta_handler():
                     except Exception as e:
                         logger.error(
                             f"Encountered exception while trying to write data to triplestore - {task['uri']}")
-                        update_task_status(task["uri"], TASK_STATUSES["FAILED"])
+                        update_task_status(
+                            task["uri"], TASK_STATUSES["FAILED"])
                         raise e from None
                 else:
                     print("Task is not in the 'COLLECTING' state.")
