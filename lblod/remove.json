@@ -1,0 +1,244 @@
+{
+    "sleutels": [
+        {
+            "codeerSysteem": "vCode",
+            "bron": "Vcode",
+            "gestructureerdeIdentificator": {
+                "nummer": "V000TEST",
+                "@type": "generiek:GestructureerdeIdentificator",
+                "@id": "ges:5b643d8a-4c61-567f-b1af-1120bbd4a909TEST"
+            },
+            "@type": "adms:Identifier",
+            "@id": "identificatoren:8d45be4f-ced3-53ca-82f2-85d8b97e3384TEST",
+            "waarde": "V0001003"
+        }
+    ],
+    "isUitgeschrevenUitPubliekeDatastroom": false,
+    "vCode": "V000TEST",
+    "locaties": [
+        {
+            "@id": "loc:e0755068-6245-57e2-a262-592a55f714fcTEST",
+            "@type": "org:Site",
+            "description": "'t Park",
+            "locatieType": {
+                "@id": "con:2b48a61b-16de-575a-9ec1-e643727144f2TEST",
+                "@type": "concept:TypeVestiging",
+                "naam": "Activiteiten"
+            },
+            "bestaatUit": {
+                "straatnaam": "Parkstraat",
+                "adresvoorstelling": "Teststraat 2, 3000 Leuven",
+                "land": "Belgi\u00eb",
+                "huisnummer": "1201",
+                "postcode": "3000",
+                "gemeente": "Leuven",
+                "@type": "locn:Address",
+                "@id": "adressen:3d0ea333-50bb-5df9-b753-244db2bb1d14TEST"
+            }
+        },
+        {
+            "@id": "loc:c027ab64-8b31-5963-b5d0-7b6f1b6ce292TEST",
+            "@type": "org:Site",
+            "description": "'t Zaaltje",
+            "locatieType": {
+                "@id": "con:2b48a61b-16de-575a-9ec1-e643727144f7TEST",
+                "@type": "concept:TypeVestiging",
+                "naam": "Activiteiten 2"
+            },
+            "bestaatUit": {
+                "straatnaam": "Parkstraat",
+                "land": "Belgi\u00eb",
+                "huisnummer": "1202",
+                "postcode": "3000",
+                "gemeente": "Leuven",
+                "adresvoorstelling": "Teststraat 3, 3000 Leuven",
+                "@type": "locn:Address",
+                "@id": "adressen:aa46f101-996f-5efc-bb94-c12e32d34907TEST"
+            }
+        }
+    ],
+    "korteBeschrijving": "Nieuwe test vereniging 3",
+    "startdatum": "2024-05-01",
+    "bron": "Initiator",
+    "contactgegevens": [
+        {
+            "@id": "cont:e980cd1b-5811-50dd-83c4-b3d81f093795TEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "E-mail",
+            "primairContact": "Primary",
+            "email": "test@test.com"
+        },
+        {
+            "@id": "cont:bdc56140-ca8a-5cbf-bed4-ed94950d8b0aTEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "Telefoon",
+            "primairContact": "Primary",
+            "telefoon": "+329182910112"
+        },
+        {
+            "@id": "cont:1eff4ce5-c848-560c-8997-ee3b7e9566dfTEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "E-mail",
+            "email": "test@gmail.com"
+        },
+        {
+            "@id": "cont:f2ab045c-eda7-5998-add9-9c891764b0c4TEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "Telefoon",
+            "telefoon": "+320892181192"
+        },
+        {
+            "@id": "cont:a9f17f6c-f01d-5f32-8aaa-cac2da2a8b5dTEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "Website",
+            "website": "https://test.be"
+        },
+        {
+            "@id": "cont:ceed3c9e-a2d1-5eeb-b152-484e8f65b6b6TEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "SocialMedia",
+            "website": "https://facebook.com/test"
+        },
+        {
+            "@id": "cont:90a1e608-46b3-5d40-af87-486049b97497TEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "E-mail",
+            "email": "test@test.com"
+        },
+        {
+            "@id": "cont:ea017c39-0bad-5b2c-9c84-9d0e1c3d986fTEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "Telefoon",
+            "telefoon": "+320892181192"
+        },
+        {
+            "@id": "cont:8f8e025b-ed9c-586b-9f43-a8f86f84837fTEST",
+            "@type": "schema:ContactPoint",
+            "contactgegeventype": "Website",
+            "website": "https://test.be/activiteiten"
+        }
+    ],
+    "hoofdactiviteitenVerenigingsloket": [
+        {
+            "code": "BIAG",
+            "@type": "skos:Concept",
+            "@id": "act:bc030c29-7f70-5e60-828c-dbc6d7a85535",
+            "naam": "Burgerinitiatief & Actiegroep"
+        },
+        {
+            "code": "KECU",
+            "@type": "skos:Concept",
+            "@id": "act:bc8bac97-2746-5175-b50a-35bd9b24d2bd",
+            "naam": "Kunsten, Erfgoed & Cultuur"
+        },
+        {
+            "code": "NMDW",
+            "@type": "skos:Concept",
+            "@id": "act:1015b579-c0ee-5719-8dda-c596c5a19b34",
+            "naam": "Natuur, Milieu & Dierenwelzijn"
+        }
+    ],
+    "status": "Actief",
+    "verenigingstype": {
+        "code": "FV",
+        "naam": "Feitelijke vereniging",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/27955b23-50a0-527d-a474-cb929caaae1c"
+    },
+    "@type": "fei:FeitelijkeVereniging",
+    "vertegenwoordigers": [
+        {
+            "@id": "lidmaatschap:26b4d591-279c-5a89-8eb8-6c9cbf70a8b5TEST",
+            "@type": "org:Membership",
+            "vertegenwoordigerPersoon": {
+                "@id": "person:ef677da8-0046-572d-aadd-5eb90b9ca666b5TEST3",
+                "@type": "person:Person",
+                "voornaam": "Vergauwen",
+                "achternaam": "Andres",
+                "contactgegevens": [
+                    {
+                        "@id": "cont:33aba4a8-6a9e-54f7-997b-4489225d91105TEST3",
+                        "@type": "schema:ContactPoint",
+                        "primairContact": "Primary",
+                        "telefoon": "+32471074255",
+                        "email": "andres.vergauwen@hello.be"
+                    },
+                    {
+                        "@id": "cont:33aba4a8-6a9e-54f7-997b-4489225d91106TEST3",
+                        "@type": "schema:ContactPoint",
+                        "website": "https://facebook.com/test"
+                    }
+                ]
+            }
+        },
+        {
+            "@id": "lidmaatschap:8ee25f5d-1cc3-52b5-b11c-74af11f7756cTEST",
+            "@type": "org:Membership",
+            "vertegenwoordigerPersoon": {
+                "@id": "person:ac4420ff-e20e-5bcf-ab59-1b724f3829fcTEST",
+                "@type": "person:Person",
+                "voornaam": "Nele",
+                "achternaam": "Leuven",
+                "contactgegevens": [
+                    {
+                        "@id": "cont:0076b631-9b96-5a6a-a6aa-795a37945776TEST2",
+                        "@type": "schema:ContactPoint",
+                        "primairContact": "Secondary",
+                        "telefoon": "+32471074256",
+                        "email": "hello1@leuven.com"
+                    }
+                ]
+            }
+        },
+        {
+            "@id": "lidmaatschap:f605869f-03c8-5e90-bb71-4facca42208aTEST",
+            "@type": "org:Membership",
+            "vertegenwoordigerPersoon": {
+                "@id": "person:99f49726-0582-5a3d-abf6-a4ff96027585TEST",
+                "@type": "person:Person",
+                "voornaam": "Sofie",
+                "achternaam": "Leuven",
+                "contactgegevens": [
+                    {
+                        "@id": "cont:55955587-0992-5a43-9f60-18d525ee627eTEST2",
+                        "@type": "schema:ContactPoint",
+                        "primairContact": "Secondary",
+                        "telefoon": "+32471074253",
+                        "email": "hello2@leuven.com"
+                    }
+                ]
+            }
+        }
+    ],
+    "doelgroep": {
+        "maximumleeftijd": 200,
+        "minimumleeftijd": 0,
+        "@type": "verenigingen_ext:Doelgroep",
+        "@id": "doel:3acbe863-cc44-5c91-82c6-c67e31155dc4TEST"
+    },
+    "korteNaam": "Test vereniging",
+    "naam": "Dit is een test vereniging - LEUVEN 555",
+    "metadata": {
+        "datumLaatsteAanpassing": "2024-03-26"
+    },
+    "primaireLocatie": {
+        "@id": "loc:e610934e-e4de-5d35-90fb-bfef3fa088bTEST",
+        "@type": "org:Site",
+        "description": "Correspondentieadres",
+        "locatieType": {
+            "@id": "con:9dd5b10d-719f-5207-bf39-ba09441fd590TEST",
+            "@type": "concept:TypeVestiging",
+            "naam": "Correspondentie"
+        },
+        "bestaatUit": {
+            "straatnaam": "Teststraat",
+            "adresvoorstelling": "Teststraat 1, 3000 Leuven",
+            "land": "Belgi\u00eb",
+            "huisnummer": "2",
+            "postcode": "3000",
+            "gemeente": "Leuven",
+            "busnummer": "1",
+            "@type": "locn:Address",
+            "@id": "adressen:a9c22e04-1031-5ec2-b256-9f7aa2e063b8TEST"
+        }
+    }
+}

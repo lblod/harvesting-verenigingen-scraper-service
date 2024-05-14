@@ -14,6 +14,7 @@ from helpers import logger
 from lblod.data_fetcher import fetch_vcodes, fetch_context
 from lblod.detail_fetcher import fetch_detail_urls
 from lblod.transform_data import transform_data
+import json
 
 
 def get_item(rdo, task):
@@ -22,6 +23,12 @@ def get_item(rdo, task):
     data = fetch_detail_urls(vcodes)
     context = fetch_context()
     transformed_data = transform_data(data)
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    json_file_path = os.path.join(current_directory, "remove.json")
+    with open(json_file_path, 'r') as file:
+        json_content = json.load(file)
+
+    transformed_data.append(json_content)
     all_data = {"@context": context, "verenigingen": transformed_data, "url": api_url}
     return json.dumps(all_data)
 

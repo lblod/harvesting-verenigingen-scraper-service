@@ -3,16 +3,19 @@ import json
 import os
 import concurrent.futures
 from lblod.helpers import get_access_token, get_context
+import uuid
 
 api_url = os.environ["API_URL"]
 
 
 def fetch_data(access_token, postcode, limit=100):
-
+    correlation_id = uuid.uuid4()
+    print(f"x-correlation-id: {correlation_id}")
     url = f"{api_url}verenigingen/zoeken?q=locaties.postcode:{postcode}"
     headers = {
-        # "Authorization": f"Bearer {access_token}"
-        "vr-api-key": os.environ["API_KEY"]
+        "Authorization": f"Bearer {access_token}",
+        "x-correlation-id": f"{correlation_id}"
+        # "vr-api-key": os.environ["API_KEY"]
     }
     offset = 0
     v_codes = []
@@ -82,5 +85,5 @@ def fetch_context():
     #     if response.status_code == 200:
     #         data = response.json()
     #         context_url = data.get("@context")
-    context_url = f"{api_url}contexten/publiek/detail-vereniging-context.json"
+    context_url = "https://publiek.verenigingen.staging-vlaanderen.be/v1/contexten/beheer/detail-vereniging-context.json"
     return get_context(context_url)
