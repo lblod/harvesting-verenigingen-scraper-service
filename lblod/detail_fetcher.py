@@ -14,7 +14,6 @@ def fetch_detail_url(access_token, v_code):
     headers = {
         "Authorization": f"Bearer {access_token}",
         "x-correlation-id": f"{correlation_id}"
-        # "vr-api-key": os.environ["API_KEY"]
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:

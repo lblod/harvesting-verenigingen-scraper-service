@@ -15,7 +15,6 @@ def fetch_data(access_token, postcode, limit=100):
     headers = {
         "Authorization": f"Bearer {access_token}",
         "x-correlation-id": f"{correlation_id}"
-        # "vr-api-key": os.environ["API_KEY"]
     }
     offset = 0
     v_codes = []
@@ -73,17 +72,5 @@ def fetch_vcodes():
 
 
 def fetch_context():
-    # access_token = get_access_token()
-    # if access_token:
-    #     print("Access token:", "success")
-    #     url = f"{api_url}verenigingen/zoeken"
-    #     headers = {
-    #         # "Authorization": f"Bearer {access_token}"
-    #         "vr-api-key": os.environ['API_KEY']
-    #     }
-    #     response = requests.get(url, headers=headers)
-    #     if response.status_code == 200:
-    #         data = response.json()
-    #         context_url = data.get("@context")
     context_url = "https://publiek.verenigingen.staging-vlaanderen.be/v1/contexten/beheer/detail-vereniging-context.json"
     return get_context(context_url)
