@@ -3,9 +3,7 @@ import datetime
 import os
 import uuid
 import gzip
-from rdflib import Graph
 
-import requests
 from constants import DEFAULT_GRAPH, TASK_STATUSES
 
 from lblod.file import STORAGE_PATH, construct_insert_file_query
@@ -13,15 +11,20 @@ from lblod.harvester import collection_has_collected_files, create_results_conta
 from lblod.job import update_task_status
 from sudo_query import update_sudo
 from helpers import logger
+from lblod.data_fetcher import fetch_vcodes, fetch_context
+from lblod.detail_fetcher import fetch_detail_urls
+from lblod.transform_data import transform_data
+import json
 
 
 def get_item(rdo, task):
-    # TODO: look for all the associations to scrape
-    # Get all possible urls
-    json_urls = {"urls": ["https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=1",
-                          "https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=2",
-                          "https://verenigingen.oscart-dev.s.redhost.be/json-ld?page=3"]}
-    return json.dumps(json_urls)
+    api_url = os.environ["API_URL"]
+    vcodes = fetch_vcodes()
+    data = fetch_detail_urls(vcodes)
+    context = fetch_context()
+    transformed_data = transform_data(data)
+    all_data = {"@context": context, "verenigingen": transformed_data, "url": api_url}
+    return json.dumps(all_data)
 
 
 def process_item(content, rdo):
@@ -32,7 +35,7 @@ def process_item(content, rdo):
     json_file_name = f"{_uuid}.json.gz"
     json_file_path = os.path.join(STORAGE_PATH, json_file_name)
 
-    with gzip.open(json_file_path, "wt", encoding='utf-8') as f:
+    with gzip.open(json_file_path, "wt", encoding="utf-8") as f:
         f.write(content)
 
     size = os.stat(json_file_path).st_size
@@ -63,18 +66,15 @@ def push_item_to_triplestore(item):
         "modified": item["file_created"],  # currently unused
         "size": item["size"],
         "extension": item["extension"],
-        "remote_data_object": item["rdo"]["uri"]
+        "remote_data_object": item["rdo"]["uri"],
     }
-    physical_resource_uri = item["physical_file_path"].replace(
-        "/share/", "share://")
+    physical_resource_uri = item["physical_file_path"].replace("/share/", "share://")
     physical_file = {
         "uuid": item["uuid"],
         "uri": physical_resource_uri,
-        "name": item["physical_file_name"]
+        "name": item["physical_file_name"],
     }
-    ins_file_q_string = construct_insert_file_query(file,
-                                                    physical_file,
-                                                    DEFAULT_GRAPH)
+    ins_file_q_string = construct_insert_file_query(file, physical_file, DEFAULT_GRAPH)
     update_sudo(ins_file_q_string)
 
 

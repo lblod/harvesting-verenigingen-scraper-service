@@ -1,0 +1,122 @@
+import copy
+import os
+import json
+import uuid
+
+
+def create_uuid_from_string(input_string):
+    generated_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, input_string)
+    return generated_uuid
+
+
+def transform_data(data):
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    json_file_path = os.path.join(current_directory, "types.json")
+    with open(json_file_path, "r") as file:
+        association_types = json.load(file)
+    transformed_data = []
+
+    def create_location(locatie):
+            return {
+                "@id": locatie["@id"],
+                "@type": locatie["@type"],
+                "description": locatie.get("naam", "") ,
+                "locatieType": {
+                    "@id": "con:" + str(create_uuid_from_string(locatie["locatietype"])),
+                    "@type": "concept:TypeVestiging",
+                    "naam": locatie.get("locatietype", ""),
+                },
+                "bestaatUit": {**locatie.get("adres", {}), "adresvoorstelling": locatie.get("adresvoorstelling", "")}
+            }
+
+    def create_contact_point(contact):
+        new_contact = {
+            "@id": contact["@id"],
+            "@type": contact["@type"],
+            "contactgegeventype": contact["contactgegeventype"],
+        }
+        if contact["isPrimair"]:
+            new_contact["primairContact"] = "Primary"
+        if contact["contactgegeventype"] == "Telefoon":
+            new_contact["telefoon"] = contact["waarde"]
+        if contact["contactgegeventype"] == "E-mail":
+            new_contact["email"] = contact["waarde"]
+        if (
+            contact["contactgegeventype"] == "Website"
+            or contact["contactgegeventype"] == "SocialMedia"
+        ):
+            new_contact["website"] = contact["waarde"]
+        return new_contact
+
+    def create_contact_representative(contact):
+        new_contact = {
+            "@id": contact["@id"],
+            "@type": contact["@type"],
+            "primairContact": "Primary" if contact.get("isPrimair", False) else "Secondary"
+        }
+        if "telefoon" in contact:
+            new_contact["telefoon"] = contact["telefoon"]
+        if "e-mail" in contact:
+            new_contact["email"] = contact["e-mail"]
+        if "socialMedia" in contact:
+            new_contact["website"] = contact["socialMedia"]
+        return new_contact
+
+    def create_representative(representative_data ,v_code):
+        new_representative = {
+            "@id":  f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId')))}",
+            "@type": "org:Membership",
+            "vertegenwoordigerPersoon": {
+                "@id": representative_data.get("@id", ""),
+                "@type": representative_data.get("@type", ""),
+                "voornaam": representative_data.get("voornaam", ""),
+                "achternaam": representative_data.get("achternaam", ""),
+                "contactgegevens": []
+            },
+        }
+        contact_info = representative_data["vertegenwoordigerContactgegevens"]
+        new_representative["vertegenwoordigerPersoon"]["contactgegevens"].append(create_contact_representative(contact_info))
+        return new_representative
+
+    for item in data:
+        vereniging = copy.deepcopy(item)
+        v_code = vereniging.get("vCode", "")
+        primary_location = None
+        locaties = []
+        contact_gegevens = []
+        vertegenwoordigers = []
+        # ASSOCIATION TYPES
+        for type in association_types:
+            if type["code"] == vereniging["verenigingstype"]["code"]:
+                vereniging["verenigingstype"]["@id"] = type["@id"]
+
+        # IDENTIFIERS
+        for sleutel in vereniging["sleutels"]:
+            if sleutel["codeerSysteem"] == "Vcode":
+                sleutel["codeerSysteem"] = "vCode"
+
+        # LOCATIES
+        for locatie in item["locaties"]:
+            if locatie["isPrimair"]:
+                primary_location = create_location(locatie)
+            else:
+                locaties.append(create_location(locatie))
+
+        # CONTACTGEGEVENS
+        if "contactgegevens" in item and item["contactgegevens"]:
+             for contact in item["contactgegevens"]:
+                contact_gegevens.append(create_contact_point(contact))
+
+        # VERTEGENWOORDIGERS
+        if "vertegenwoordigers" in item and item["vertegenwoordigers"]:
+            for vertegenwoordiger in item["vertegenwoordigers"]:
+                vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
+
+
+        vereniging["primaireLocatie"] = primary_location
+        vereniging["locaties"] = locaties
+        vereniging["contactgegevens"] = contact_gegevens
+        vereniging["vertegenwoordigers"] = vertegenwoordigers
+        vereniging["@type"] = "fei:FeitelijkeVereniging"
+        transformed_data.append(vereniging)
+    return transformed_data
