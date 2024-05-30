@@ -5,8 +5,10 @@ import uuid
 
 
 def create_uuid_from_string(input_string):
-    generated_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, input_string)
-    return generated_uuid
+    if input_string:
+        generated_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, input_string)
+        return generated_uuid
+    return ""
 
 
 def transform_data(data):
@@ -18,11 +20,11 @@ def transform_data(data):
 
     def create_location(locatie):
             return {
-                "@id": locatie["@id"],
-                "@type": locatie["@type"],
+                "@id": locatie.get("@id", ""),
+                "@type": locatie.get("@type", ""),
                 "description": locatie.get("naam", "") ,
                 "locatieType": {
-                    "@id": "con:" + str(create_uuid_from_string(locatie["locatietype"])),
+                    "@id": "con:" + str(create_uuid_from_string(locatie.get("locatietype", ""))),
                     "@type": "concept:TypeVestiging",
                     "naam": locatie.get("locatietype", ""),
                 },
@@ -31,8 +33,8 @@ def transform_data(data):
 
     def create_contact_point(contact):
         new_contact = {
-            "@id": contact["@id"],
-            "@type": contact["@type"],
+            "@id": contact.get("@id", ""),
+            "@type": contact.get("@type", ""),
             "contactgegeventype": contact["contactgegeventype"],
         }
         if contact["isPrimair"]:
@@ -50,8 +52,8 @@ def transform_data(data):
 
     def create_contact_representative(contact):
         new_contact = {
-            "@id": contact["@id"],
-            "@type": contact["@type"],
+            "@id": contact.get("@id", ""),
+            "@type": contact.get("@type", ""),
             "primairContact": "Primary" if contact.get("isPrimair", False) else "Secondary"
         }
         if "telefoon" in contact:
@@ -74,8 +76,9 @@ def transform_data(data):
                 "contactgegevens": []
             },
         }
-        contact_info = representative_data["vertegenwoordigerContactgegevens"]
-        new_representative["vertegenwoordigerPersoon"]["contactgegevens"].append(create_contact_representative(contact_info))
+        contact_info = representative_data.get("vertegenwoordigerContactgegevens", [])
+        if contact_info:
+            new_representative["vertegenwoordigerPersoon"]["contactgegevens"].append(create_contact_representative(contact_info))
         return new_representative
 
     for item in data:
@@ -86,18 +89,22 @@ def transform_data(data):
         contact_gegevens = []
         vertegenwoordigers = []
         # ASSOCIATION TYPES
-        for type in association_types:
-            if type["code"] == vereniging["verenigingstype"]["code"]:
-                vereniging["verenigingstype"]["@id"] = type["@id"]
+        for assoc_type in association_types:
+            if "code" in assoc_type and "@id" in assoc_type:
+                verenigingstype = vereniging.get("verenigingstype", {})  # Use get() with a default empty dictionary
+                if "code" in verenigingstype and assoc_type["code"] == verenigingstype.get("code", ""):
+                    verenigingstype["@id"] = assoc_type.get("@id", "")
+                    vereniging["verenigingstype"] = verenigingstype
 
         # IDENTIFIERS
         for sleutel in vereniging["sleutels"]:
-            if sleutel["codeerSysteem"] == "Vcode":
-                sleutel["codeerSysteem"] = "vCode"
+            if "codeerSysteem" in sleutel:
+                if sleutel["codeerSysteem"] == "Vcode":
+                    sleutel["codeerSysteem"] = "vCode"
 
         # LOCATIES
         for locatie in item["locaties"]:
-            if locatie["isPrimair"]:
+            if "isPrimair" in locatie and locatie["isPrimair"]:
                 primary_location = create_location(locatie)
             else:
                 locaties.append(create_location(locatie))

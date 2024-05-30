@@ -53,3 +53,5 @@ urllib3==2.0.4
 w3lib==2.1.2
 Werkzeug==2.3.7
 zope.interface==6.0
+uuid==1.30
+PyJWT==2.8.0

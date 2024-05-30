@@ -1,23 +1,66 @@
 import requests
 import os
-
+import jwt
+from datetime import datetime, timedelta
+import uuid
+import subprocess
+import json
 
 def get_access_token():
-    authorization_key = os.environ["AUTHORIZATION_KEY"]
+    client_id = os.environ["CLIENT_ID"]
+    environment = os.environ["MODE"]
+    aud = os.environ["AUD"]
+    host = os.environ["HOST"]
     scope = os.environ["SCOPE"]
-    url = os.environ["ACCESS_TOKEN_URL"]
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": "Basic " + authorization_key,
-    }
-    data = {"grant_type": "client_credentials", "scope": scope}
 
-    response = requests.post(url, headers=headers, data=data)
-    if response.status_code == 200:
-        return response.json().get("access_token")
+    if(environment != "PROD"):
+        authorization_key = os.environ["AUTHORIZATION_KEY"]
+        url = f"{aud}/v1/token"
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": "Basic " + authorization_key,
+        }
+        data = {"grant_type": "client_credentials", "scope": scope}
+
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code == 200:
+            return response.json().get("access_token")
+        else:
+            print("Error:", response.status_code)
+            return None
     else:
-        print("Error:", response.status_code)
-        return None
+        iat = datetime.now().astimezone()
+        exp = iat + timedelta(minutes=9)
+
+        payload = {
+            "iss": client_id,
+            "sub": client_id,
+            "aud": aud,
+            "exp": int(exp.timestamp()),
+            "jti": str(uuid.uuid4()),
+            "iat": int(iat.timestamp())
+        }
+        current_directory = os.path.dirname(os.path.realpath(__file__))
+        private_key_path = os.path.join(current_directory, "private_key_test.pem")
+        with open(private_key_path, 'r') as file:
+            key_test = file.read()
+
+        token = jwt.encode(payload, key_test, algorithm="RS256")
+
+        curl_command = [
+            "curl", "-v", "-X", "POST", f"https://{host}/op/v1/token",
+            "-H", "Accept: application/json",
+            "-H", "Content-Type: application/x-www-form-urlencoded",
+            "--data-urlencode", "grant_type=client_credentials",
+            "--data-urlencode", "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            "--data-urlencode", f"scope={scope}",
+            "--data-urlencode", f"client_assertion={token}"
+        ]
+        curl_request_str = ' '.join(curl_command)
+        print("\nCurl request:\n", curl_request_str)
+        result = subprocess.run(curl_command, capture_output=True, text=True)
+        access_token = json.loads(result.stdout)['access_token']
+        return access_token
 
 
 def get_context(url):
