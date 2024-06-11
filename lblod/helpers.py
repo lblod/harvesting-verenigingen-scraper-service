@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import uuid
 import subprocess
 import json
+import glob
 
 def get_access_token():
     client_id = os.environ["CLIENT_ID"]
@@ -40,27 +41,37 @@ def get_access_token():
             "jti": str(uuid.uuid4()),
             "iat": int(iat.timestamp())
         }
-        current_directory = os.path.dirname(os.path.realpath(__file__))
-        private_key_path = os.path.join(current_directory, "private_key_test.pem")
-        with open(private_key_path, 'r') as file:
-            key_test = file.read()
+        config_path = '/config'
+        if os.path.exists(config_path):
+            pem_files = glob.glob(os.path.join(config_path, '*.pem'))
 
-        token = jwt.encode(payload, key_test, algorithm="RS256")
+            if pem_files:
+                first_pem_file = pem_files[0]
+                with open(first_pem_file, 'r') as file:
+                    key_test = file.read()
+                print("First .pem file read successfully.")
+            else:
+                print("No .pem files found in the directory.")
+        else:
+            print(f"Directory '{config_path}' does not exist.")
 
-        curl_command = [
-            "curl", "-v", "-X", "POST", f"https://{host}/op/v1/token",
-            "-H", "Accept: application/json",
-            "-H", "Content-Type: application/x-www-form-urlencoded",
-            "--data-urlencode", "grant_type=client_credentials",
-            "--data-urlencode", "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "--data-urlencode", f"scope={scope}",
-            "--data-urlencode", f"client_assertion={token}"
-        ]
-        curl_request_str = ' '.join(curl_command)
-        print("\nCurl request:\n", curl_request_str)
-        result = subprocess.run(curl_command, capture_output=True, text=True)
-        access_token = json.loads(result.stdout)['access_token']
-        return access_token
+        if(key_test):
+            token = jwt.encode(payload, key_test, algorithm="RS256")
+
+            curl_command = [
+                "curl", "-v", "-X", "POST", f"https://{host}/op/v1/token",
+                "-H", "Accept: application/json",
+                "-H", "Content-Type: application/x-www-form-urlencoded",
+                "--data-urlencode", "grant_type=client_credentials",
+                "--data-urlencode", "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+                "--data-urlencode", f"scope={scope}",
+                "--data-urlencode", f"client_assertion={token}"
+            ]
+            curl_request_str = ' '.join(curl_command)
+            print("\nCurl request:\n", curl_request_str)
+            result = subprocess.run(curl_command, capture_output=True, text=True)
+            access_token = json.loads(result.stdout)['access_token']
+            return access_token
 
 
 def get_context(url):
