@@ -120,6 +120,24 @@ def transform_data(data):
                 vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
 
 
+        if not primary_location:
+            for locatie in locaties:
+                if locatie.get('locatieType', {}).get('naam') == "Maatschappelijke zetel volgens KBO":
+                    primary_location = locatie
+                    break
+
+            if not primary_location:
+                for locatie in locaties:
+                    if locatie.get('locatieType', {}).get('naam') == "Correspondentie":
+                        primary_location = locatie
+                        break
+
+                if not primary_location:
+                    primary_location = locaties[0] if locaties else None
+
+        if primary_location and primary_location in locaties:
+            locaties.remove(primary_location)
+
         vereniging["primaireLocatie"] = primary_location
         vereniging["locaties"] = locaties
         vereniging["contactgegevens"] = contact_gegevens
