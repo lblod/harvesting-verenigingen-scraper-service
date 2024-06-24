@@ -92,7 +92,7 @@ def get_context(url):
         context["vertegenwoordigerPersoon"] = "org:member"
         context["ere"] = "http://data.lblod.info/vocabularies/erediensten/"
         context["adresvoorstelling"] = "locn:fullAddress"
-
+        context["datumLaatsteAanpassing"] = "pav:lastUpdateOn"
 
         return context
     else:
