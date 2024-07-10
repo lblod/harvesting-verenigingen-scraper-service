@@ -1,0 +1,7 @@
+__pycache__
+*.gz
+*.DS_Store
+.env
+.vscode
+.vscode/*
+*.pem

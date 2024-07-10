@@ -1,0 +1,26 @@
+[
+    {
+        "code": "FV",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/27955b23-50a0-527d-a474-cb929caaae1c"
+    },
+    {
+        "code": "VZW",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/491b5a8d-844c-51af-ae48-2a32fb77f147"
+    },
+    {
+        "code": "PS",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/5c144a13-a7de-5b92-bd7f-fa74ef3f0a9e"
+    },
+    {
+        "code": "IVZW",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/a601c493-26f5-5a1e-9016-adb301973a36"
+    },
+    {
+        "code": "AFD",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/da22fc58-2cde-5326-a07a-b890f761de93"
+    },
+    {
+        "code": "SVON",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/f3c67343-57f8-587e-89a8-afea6e202078"
+    }
+]
