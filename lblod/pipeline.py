@@ -19,9 +19,9 @@ import json
 
 def get_item(rdo, task):
     api_url = os.environ["API_URL"]
-    vcodes = fetch_vcodes()
-    data = fetch_detail_urls(vcodes)
-    context = fetch_context()
+    vcodes = fetch_vcodes(task)
+    data = fetch_detail_urls(vcodes, task)
+    context = fetch_context(task)
     transformed_data = transform_data(data)
     all_data = {"@context": context, "verenigingen": transformed_data, "url": api_url}
     return json.dumps(all_data)
