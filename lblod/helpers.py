@@ -6,6 +6,7 @@ import uuid
 import subprocess
 import json
 import glob
+from helpers import logger
 
 def get_access_token():
     client_id = os.environ["CLIENT_ID"]
@@ -75,26 +76,41 @@ def get_access_token():
 
 
 def get_context(url):
-    response = requests.get(url)
-    if response.status_code == 200:
-        context = response.json()
-        context["doel"] = "https://data.vlaanderen.be/ns/"
-        context["loc"] = "http://data.lblod.info/id/vestigingen/"
-        context["concept"] = "http://data.vlaanderen.be/id/concept/"
-        context["gestructureerdeIdentificator"] = "generiek:gestructureerdeIdentificator"
-        context["bestaatUit"] = "https://data.vlaanderen.be/ns/organisatie#bestaatUit"
-        context["startdatum"] = "pav:createdOn"
-        context["contactgegeventype"] = "foaf:name"
-        context["primairContact"] = "schema:contactType"
-        context["description"] = "dc:description"
-        context["vertegenwoordigers"] = "org:hasMembership"
-        context["lidmaatschap"] = "http://data.lblod.info/id/lidmaatschap/"
-        context["vertegenwoordigerPersoon"] = "org:member"
-        context["ere"] = "http://data.lblod.info/vocabularies/erediensten/"
-        context["adresvoorstelling"] = "locn:fullAddress"
-        context["datumLaatsteAanpassing"] = "pav:lastUpdateOn"
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
 
+        context = response.json()
+        context.update({
+            "doel": "https://data.vlaanderen.be/ns/",
+            "loc": "http://data.lblod.info/id/vestigingen/",
+            "concept": "http://data.vlaanderen.be/id/concept/",
+            "gestructureerdeIdentificator": "generiek:gestructureerdeIdentificator",
+            "bestaatUit": "https://data.vlaanderen.be/ns/organisatie#bestaatUit",
+            "startdatum": "pav:createdOn",
+            "contactgegeventype": "foaf:name",
+            "primairContact": "schema:contactType",
+            "description": "dc:description",
+            "vertegenwoordigers": "org:hasMembership",
+            "lidmaatschap": "http://data.lblod.info/id/lidmaatschap/",
+            "vertegenwoordigerPersoon": "org:member",
+            "ere": "http://data.lblod.info/vocabularies/erediensten/",
+            "adresvoorstelling": "locn:fullAddress",
+            "datumLaatsteAanpassing": "pav:lastUpdateOn"
+        })
+
+        logger.info(f"Successfully fetched and updated context from {url}")
         return context
-    else:
-        print(f"Error fetching context url: {response.status_code}")
-        return None
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred while fetching context from {url}: {http_err}")
+    except requests.exceptions.ConnectionError as conn_err:
+        logger.error(f"Connection error occurred while fetching context from {url}: {conn_err}")
+    except requests.exceptions.Timeout as timeout_err:
+        logger.error(f"Timeout error occurred while fetching context from {url}: {timeout_err}")
+    except requests.exceptions.RequestException as req_err:
+        logger.error(f"Request exception occurred while fetching context from {url}: {req_err}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while fetching context from {url}: {e}")
+
+    return None
