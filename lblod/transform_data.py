@@ -107,14 +107,9 @@ def transform_data(data):
         logging.debug(f"Created contact representative: {new_contact}")
         return new_contact
 
-    def create_representative(representative_data, v_code):
-        if representative_data is None:
-            logging.error("Representative data is None")
-            raise ValueError("representative_data is None")
-
-        representative_id = f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId', '')))}"
-        representative = {
-            "@id": representative_id,
+    def create_representative(representative_data ,v_code):
+        new_representative = {
+            "@id":  f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId')))}",
             "@type": "org:Membership",
             "vertegenwoordigerPersoon": {
                 "@id": representative_data.get("@id", ""),
@@ -126,12 +121,8 @@ def transform_data(data):
         }
         contact_info = representative_data.get("vertegenwoordigerContactgegevens", [])
         if contact_info:
-            representative["vertegenwoordigerPersoon"]["contactgegevens"] = [
-                create_contact_representative(info) for info in contact_info
-            ]
-
-        logging.debug(f"Created representative: {representative}")
-        return representative
+            new_representative["vertegenwoordigerPersoon"]["contactgegevens"].append(create_contact_representative(contact_info))
+        return new_representative
 
     for item in data:
         if item is None:
@@ -173,8 +164,8 @@ def transform_data(data):
             contact_gegevens.append(create_contact_point(contact))
 
         # VERTEGENWOORDIGERS
-        # for vertegenwoordiger in item.get("vertegenwoordigers", []):
-        #     vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
+        for vertegenwoordiger in item.get("vertegenwoordigers", []):
+            vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
 
         if not primary_location:
             for locatie in locaties:
