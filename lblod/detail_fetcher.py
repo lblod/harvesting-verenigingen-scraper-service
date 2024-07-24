@@ -58,7 +58,6 @@ def fetch_detail_url(access_token, v_code, task):
     update_task_status(task["uri"], TASK_STATUSES["FAILED"])
     return None
 
-
 def fetch_detail_urls(all_vcodes, task):
     try:
         access_token = get_access_token()
@@ -70,5 +69,7 @@ def fetch_detail_urls(all_vcodes, task):
         logger.error(f"Unexpected error while fetching association detail URLs: {e}")
         update_task_status(task["uri"], TASK_STATUSES["FAILED"])
         return None
+
+    results = [result for result in results if result is not None]
 
     return results
