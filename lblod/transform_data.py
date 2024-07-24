@@ -37,6 +37,8 @@ def transform_data(data):
             }
 
     def create_contact_point(contact):
+        if contact is None:
+            raise ValueError("contact is None")
         new_contact = {
             "@id": contact.get("@id", ""),
             "@type": contact.get("@type", ""),
@@ -102,13 +104,13 @@ def transform_data(data):
                     vereniging["verenigingstype"] = verenigingstype
 
         # IDENTIFIERS
-        for sleutel in vereniging["sleutels"]:
+        for sleutel in vereniging.get("sleutels", []):
             if "codeerSysteem" in sleutel:
                 if sleutel["codeerSysteem"] == "Vcode":
                     sleutel["codeerSysteem"] = "vCode"
 
         # LOCATIES
-        for locatie in item["locaties"]:
+        for locatie in item.get("locaties", []):
             if "isPrimair" in locatie and locatie["isPrimair"]:
                 primary_location = create_location(locatie)
             else:
@@ -116,12 +118,12 @@ def transform_data(data):
 
         # CONTACTGEGEVENS
         if "contactgegevens" in item and item["contactgegevens"]:
-             for contact in item["contactgegevens"]:
+            for contact in item.get("contactgegevens", []):
                 contact_gegevens.append(create_contact_point(contact))
 
         # VERTEGENWOORDIGERS
         if "vertegenwoordigers" in item and item["vertegenwoordigers"]:
-            for vertegenwoordiger in item["vertegenwoordigers"]:
+            for vertegenwoordiger in item.get("vertegenwoordigers", []):
                 vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
 
 
