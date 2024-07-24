@@ -2,79 +2,119 @@ import copy
 import os
 import json
 import uuid
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def create_uuid_from_string(input_string):
     if input_string:
         generated_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, input_string)
+        logging.debug(f"Generated UUID: {generated_uuid} for input string: {input_string}")
         return generated_uuid
+    logging.warning("Input string is empty, returning empty UUID")
     return ""
-
 
 def transform_data(data):
     current_directory = os.path.dirname(os.path.realpath(__file__))
     json_file_path = os.path.join(current_directory, "types.json")
-    with open(json_file_path, "r") as file:
-        try:
+    logging.debug(f"Loading JSON file from path: {json_file_path}")
+
+    try:
+        with open(json_file_path, "r") as file:
             association_types = json.load(file)
-        except json.JSONDecodeError:
-            raise ValueError(f"Error parsing JSON from {json_file_path}")
+    except json.JSONDecodeError:
+        logging.error(f"Error parsing JSON from {json_file_path}")
+        raise ValueError(f"Error parsing JSON from {json_file_path}")
+    logging.debug(f"Association types loaded: {association_types}")
+
     transformed_data = []
 
     def create_location(locatie):
         if locatie is None:
+            logging.error("Location is None")
             raise ValueError("locatie is None")
-        return {
-            "@id": locatie.get("@id", ""),
-            "@type": locatie.get("@type", ""),
-            "description": locatie.get("naam", ""),
+        location_id = locatie.get("@id", "")
+        location_type = locatie.get("@type", "")
+        location_name = locatie.get("naam", "")
+        locatietype_id = "con:" + str(create_uuid_from_string(locatie.get("locatietype", "")))
+        locatie_type_name = locatie.get("locatietype", "")
+        locatie_address = {**locatie.get("adres", {}), "adresvoorstelling": locatie.get("adresvoorstelling", "")}
+
+        location = {
+            "@id": location_id,
+            "@type": location_type,
+            "description": location_name,
             "locatieType": {
-                "@id": "con:" + str(create_uuid_from_string(locatie.get("locatietype", ""))),
+                "@id": locatietype_id,
                 "@type": "concept:TypeVestiging",
-                "naam": locatie.get("locatietype", ""),
+                "naam": locatie_type_name,
             },
-            "bestaatUit": {**locatie.get("adres", {}), "adresvoorstelling": locatie.get("adresvoorstelling", "")}
+            "bestaatUit": locatie_address
         }
+        logging.debug(f"Created location: {location}")
+        return location
 
     def create_contact_point(contact):
         if contact is None:
+            logging.error("Contact is None")
             raise ValueError("contact is None")
+
+        contact_id = contact.get("@id", "")
+        contact_type = contact.get("@type", "")
+        contact_type_value = contact.get("contactgegeventype", "")
+        contact_value = contact.get("waarde", "")
         new_contact = {
-            "@id": contact.get("@id", ""),
-            "@type": contact.get("@type", ""),
-            "contactgegeventype": contact.get("contactgegeventype", ""),
+            "@id": contact_id,
+            "@type": contact_type,
+            "contactgegeventype": contact_type_value,
         }
         if contact.get("isPrimair"):
             new_contact["primairContact"] = "Primary"
-        if contact.get("contactgegeventype") == "Telefoon":
-            new_contact["telefoon"] = contact.get("waarde", "")
-        if contact.get("contactgegeventype") == "E-mail":
-            new_contact["email"] = contact.get("waarde", "")
-        if contact.get("contactgegeventype") in ["Website", "SocialMedia"]:
-            new_contact["website"] = contact.get("waarde", "")
+        if contact_type_value == "Telefoon":
+            new_contact["telefoon"] = contact_value
+        elif contact_type_value == "E-mail":
+            new_contact["email"] = contact_value
+        elif contact_type_value in ["Website", "SocialMedia"]:
+            new_contact["website"] = contact_value
+
+        logging.debug(f"Created contact point: {new_contact}")
         return new_contact
 
     def create_contact_representative(contact):
         if contact is None:
+            logging.error("Contact is None")
             raise ValueError("contact is None")
+
+        representative_id = contact.get("@id", "")
+        representative_type = contact.get("@type", "")
+        contact_phone = contact.get("telefoon", "")
+        contact_email = contact.get("e-mail", "")
+        contact_social_media = contact.get("socialMedia", "")
+
         new_contact = {
-            "@id": contact.get("@id", ""),
-            "@type": contact.get("@type", ""),
+            "@id": representative_id,
+            "@type": representative_type,
             "primairContact": "Primary" if contact.get("isPrimair", False) else "Secondary"
         }
-        if "telefoon" in contact:
-            new_contact["telefoon"] = contact.get("telefoon", "")
-        if "e-mail" in contact:
-            new_contact["email"] = contact.get("e-mail", "")
-        if "socialMedia" in contact:
-            new_contact["website"] = contact.get("socialMedia", "")
+        if contact_phone:
+            new_contact["telefoon"] = contact_phone
+        if contact_email:
+            new_contact["email"] = contact_email
+        if contact_social_media:
+            new_contact["website"] = contact_social_media
+
+        logging.debug(f"Created contact representative: {new_contact}")
         return new_contact
 
     def create_representative(representative_data, v_code):
         if representative_data is None:
+            logging.error("Representative data is None")
             raise ValueError("representative_data is None")
-        new_representative = {
-            "@id": f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId', '')))}",
+
+        representative_id = f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId', '')))}"
+        representative = {
+            "@id": representative_id,
             "@type": "org:Membership",
             "vertegenwoordigerPersoon": {
                 "@id": representative_data.get("@id", ""),
@@ -86,13 +126,16 @@ def transform_data(data):
         }
         contact_info = representative_data.get("vertegenwoordigerContactgegevens", [])
         if contact_info:
-            new_representative["vertegenwoordigerPersoon"]["contactgegevens"] = [
+            representative["vertegenwoordigerPersoon"]["contactgegevens"] = [
                 create_contact_representative(info) for info in contact_info
             ]
-        return new_representative
+
+        logging.debug(f"Created representative: {representative}")
+        return representative
 
     for item in data:
         if item is None:
+            logging.error("Item in data is None")
             raise ValueError("item in data is None")
 
         vereniging = copy.deepcopy(item)
@@ -101,6 +144,8 @@ def transform_data(data):
         locaties = []
         contact_gegevens = []
         vertegenwoordigers = []
+
+        logging.debug(f"Processing item: {vereniging}")
 
         # ASSOCIATION TYPES
         for assoc_type in association_types:
@@ -156,4 +201,7 @@ def transform_data(data):
         vereniging["@type"] = "fei:FeitelijkeVereniging"
         vereniging["datumLaatsteAanpassing"] = vereniging.get("metadata", {}).get("datumLaatsteAanpassing")
         transformed_data.append(vereniging)
+
+        logging.debug(f"Transformed vereniging: {vereniging}")
+
     return transformed_data
