@@ -25,16 +25,16 @@ def transform_data(data):
         if locatie is None:
             raise ValueError("locatie is None")
         return {
-                "@id": locatie.get("@id", ""),
-                "@type": locatie.get("@type", ""),
-                "description": locatie.get("naam", "") ,
-                "locatieType": {
-                    "@id": "con:" + str(create_uuid_from_string(locatie.get("locatietype", ""))),
-                    "@type": "concept:TypeVestiging",
-                    "naam": locatie.get("locatietype", ""),
-                },
-                "bestaatUit": {**locatie.get("adres", {}), "adresvoorstelling": locatie.get("adresvoorstelling", "")}
-            }
+            "@id": locatie.get("@id", ""),
+            "@type": locatie.get("@type", ""),
+            "description": locatie.get("naam", ""),
+            "locatieType": {
+                "@id": "con:" + str(create_uuid_from_string(locatie.get("locatietype", ""))),
+                "@type": "concept:TypeVestiging",
+                "naam": locatie.get("locatietype", ""),
+            },
+            "bestaatUit": {**locatie.get("adres", {}), "adresvoorstelling": locatie.get("adresvoorstelling", "")}
+        }
 
     def create_contact_point(contact):
         if contact is None:
@@ -42,38 +42,39 @@ def transform_data(data):
         new_contact = {
             "@id": contact.get("@id", ""),
             "@type": contact.get("@type", ""),
-            "contactgegeventype": contact["contactgegeventype"],
+            "contactgegeventype": contact.get("contactgegeventype", ""),
         }
-        if contact["isPrimair"]:
+        if contact.get("isPrimair"):
             new_contact["primairContact"] = "Primary"
-        if contact["contactgegeventype"] == "Telefoon":
-            new_contact["telefoon"] = contact["waarde"]
-        if contact["contactgegeventype"] == "E-mail":
-            new_contact["email"] = contact["waarde"]
-        if (
-            contact["contactgegeventype"] == "Website"
-            or contact["contactgegeventype"] == "SocialMedia"
-        ):
-            new_contact["website"] = contact["waarde"]
+        if contact.get("contactgegeventype") == "Telefoon":
+            new_contact["telefoon"] = contact.get("waarde", "")
+        if contact.get("contactgegeventype") == "E-mail":
+            new_contact["email"] = contact.get("waarde", "")
+        if contact.get("contactgegeventype") in ["Website", "SocialMedia"]:
+            new_contact["website"] = contact.get("waarde", "")
         return new_contact
 
     def create_contact_representative(contact):
+        if contact is None:
+            raise ValueError("contact is None")
         new_contact = {
             "@id": contact.get("@id", ""),
             "@type": contact.get("@type", ""),
             "primairContact": "Primary" if contact.get("isPrimair", False) else "Secondary"
         }
         if "telefoon" in contact:
-            new_contact["telefoon"] = contact["telefoon"]
+            new_contact["telefoon"] = contact.get("telefoon", "")
         if "e-mail" in contact:
-            new_contact["email"] = contact["e-mail"]
+            new_contact["email"] = contact.get("e-mail", "")
         if "socialMedia" in contact:
-            new_contact["website"] = contact["socialMedia"]
+            new_contact["website"] = contact.get("socialMedia", "")
         return new_contact
 
-    def create_representative(representative_data ,v_code):
+    def create_representative(representative_data, v_code):
+        if representative_data is None:
+            raise ValueError("representative_data is None")
         new_representative = {
-            "@id":  f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId')))}",
+            "@id": f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId', '')))}",
             "@type": "org:Membership",
             "vertegenwoordigerPersoon": {
                 "@id": representative_data.get("@id", ""),
@@ -85,16 +86,22 @@ def transform_data(data):
         }
         contact_info = representative_data.get("vertegenwoordigerContactgegevens", [])
         if contact_info:
-            new_representative["vertegenwoordigerPersoon"]["contactgegevens"].append(create_contact_representative(contact_info))
+            new_representative["vertegenwoordigerPersoon"]["contactgegevens"] = [
+                create_contact_representative(info) for info in contact_info
+            ]
         return new_representative
 
     for item in data:
+        if item is None:
+            raise ValueError("item in data is None")
+
         vereniging = copy.deepcopy(item)
         v_code = vereniging.get("vCode", "")
         primary_location = None
         locaties = []
         contact_gegevens = []
         vertegenwoordigers = []
+
         # ASSOCIATION TYPES
         for assoc_type in association_types:
             if "code" in assoc_type and "@id" in assoc_type:
@@ -117,15 +124,12 @@ def transform_data(data):
                 locaties.append(create_location(locatie))
 
         # CONTACTGEGEVENS
-        if "contactgegevens" in item and item["contactgegevens"]:
-            for contact in item.get("contactgegevens", []):
-                contact_gegevens.append(create_contact_point(contact))
+        for contact in item.get("contactgegevens", []):
+            contact_gegevens.append(create_contact_point(contact))
 
         # VERTEGENWOORDIGERS
-        if "vertegenwoordigers" in item and item["vertegenwoordigers"]:
-            for vertegenwoordiger in item.get("vertegenwoordigers", []):
-                vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
-
+        for vertegenwoordiger in item.get("vertegenwoordigers", []):
+            vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
 
         if not primary_location:
             for locatie in locaties:
