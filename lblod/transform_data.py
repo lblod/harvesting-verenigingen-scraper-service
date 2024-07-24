@@ -15,11 +15,16 @@ def transform_data(data):
     current_directory = os.path.dirname(os.path.realpath(__file__))
     json_file_path = os.path.join(current_directory, "types.json")
     with open(json_file_path, "r") as file:
-        association_types = json.load(file)
+        try:
+            association_types = json.load(file)
+        except json.JSONDecodeError:
+            raise ValueError(f"Error parsing JSON from {json_file_path}")
     transformed_data = []
 
     def create_location(locatie):
-            return {
+        if locatie is None:
+            raise ValueError("locatie is None")
+        return {
                 "@id": locatie.get("@id", ""),
                 "@type": locatie.get("@type", ""),
                 "description": locatie.get("naam", "") ,
@@ -91,7 +96,7 @@ def transform_data(data):
         # ASSOCIATION TYPES
         for assoc_type in association_types:
             if "code" in assoc_type and "@id" in assoc_type:
-                verenigingstype = vereniging.get("verenigingstype", {})  # Use get() with a default empty dictionary
+                verenigingstype = vereniging.get("verenigingstype", {})
                 if "code" in verenigingstype and assoc_type["code"] == verenigingstype.get("code", ""):
                     verenigingstype["@id"] = assoc_type.get("@id", "")
                     vereniging["verenigingstype"] = verenigingstype
