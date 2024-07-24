@@ -173,8 +173,8 @@ def transform_data(data):
             contact_gegevens.append(create_contact_point(contact))
 
         # VERTEGENWOORDIGERS
-        for vertegenwoordiger in item.get("vertegenwoordigers", []):
-            vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
+        # for vertegenwoordiger in item.get("vertegenwoordigers", []):
+        #     vertegenwoordigers.append(create_representative(vertegenwoordiger, v_code))
 
         if not primary_location:
             for locatie in locaties:
