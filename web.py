@@ -37,7 +37,7 @@ def delta_handler():
                     update_task_status(task["uri"], TASK_STATUSES["BUSY"])
                     collection = get_harvest_collection_for_task(task)
                     rdo = get_initial_remote_data_object(collection)
-                    data = get_item(rdo, task)
+                    data = get_item(task)
                     item = process_item(data, rdo)
                     try:
                         push_item_to_triplestore(item)
