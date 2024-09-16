@@ -11,7 +11,7 @@ from constants import TASK_STATUSES
 api_url = os.environ["API_URL"]
 
 
-def fetch_data(access_token, postcode, limit=100):
+def fetch_data(access_token, postcode, task, limit=100):
     correlation_id = uuid.uuid4()
     logger.info(f"x-correlation-id: {correlation_id}")
     url = f"{api_url}verenigingen/zoeken?q=locaties.postcode:{postcode}"
@@ -22,43 +22,55 @@ def fetch_data(access_token, postcode, limit=100):
     offset = 0
     v_codes = []
 
+    def process_response(response, offset):
+        data = response.json()
+        v_codes.extend(
+            [vereniging.get("vCode") for vereniging in data.get("verenigingen", [])]
+        )
+
+        if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
+            offset += limit
+            logger.info(f"Offset: {offset}")
+        else:
+            return False  # No more data to fetch
+
+        return True
+
     while True:
         pagination_params = f"&offset={offset}&limit={limit}"
         paginated_url = url + pagination_params
         logger.info(f"Paginated URL: {paginated_url}")
 
-        try:
-            response = requests.get(paginated_url, headers=headers, timeout=30)
-            response.raise_for_status()
+        retry_attempts = 5
 
-            data = response.json()
-            v_codes.extend(
-                [vereniging.get("vCode") for vereniging in data.get("verenigingen", [])]
-            )
+        for attempt in range(retry_attempts):
 
-            if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
-                offset += limit
-                logger.info(f"Offset: {offset}")
-            else:
-                break
+            try:
+                response = requests.get(
+                    paginated_url,
+                    headers=headers,
+                    timeout=30
+                )
+                response.raise_for_status()
 
-        except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP error occurred for postcode {postcode}: {http_err}")
-            break
-        except requests.exceptions.ConnectionError as conn_err:
-            logger.error(f"Connection error occurred for postcode {postcode}: {conn_err}")
-            break
-        except requests.exceptions.Timeout as timeout_err:
-            logger.error(f"Timeout error occurred for postcode {postcode}: {timeout_err}")
-            break
-        except requests.exceptions.RequestException as req_err:
-            logger.error(f"Request exception occurred for postcode {postcode}: {req_err}")
-            break
-        except Exception as e:
-            logger.error(f"An unexpected error occurred for postcode {postcode}: {e}")
-            break
+                if not process_response(response, offset):
+                    break  # Break out of retry loop if no more data to fetch
 
+            except requests.exceptions.HTTPError as http_err:
+                logger.error(f"HTTP error occurred for postcode {postcode}: {http_err}")
+            except requests.exceptions.ConnectionError as conn_err:
+                logger.error(f"Connection error occurred for postcode {postcode}: {conn_err}")
+            except requests.exceptions.Timeout as timeout_err:
+                logger.error(f"Timeout error occurred for postcode {postcode}: {timeout_err}")
+            except requests.exceptions.RequestException as req_err:
+                logger.error(f"Request exception occurred for postcode {postcode}: {req_err}")
+            except Exception as e:
+                logger.error(f"An unexpected error occurred for postcode {postcode}: {e}")
+            logger.info(f"Retrying... ({attempt + 1}/{retry_attempts})")
+        logger.error(f"Encountered exception while trying to write data to triplestore - {task['uri']}")
+        update_task_status(task["uri"], TASK_STATUSES["FAILED"])
     return v_codes
+
 
 def fetch_vcodes(task):
     current_directory = os.path.dirname(os.path.realpath(__file__))
@@ -79,7 +91,7 @@ def fetch_vcodes(task):
 
         def fetch_vcodes_single(postcode):
             logger.info(f"Postcode: {postcode}")
-            return fetch_data(access_token, postcode, 160)
+            return fetch_data(access_token, postcode, task, 160)
 
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
