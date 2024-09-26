@@ -142,7 +142,7 @@ def transform_data(data):
         vereniging["locaties"] = locaties
         vereniging["contactgegevens"] = contact_gegevens
         vereniging["vertegenwoordigers"] = vertegenwoordigers
-        vereniging["@type"] = "fei:FeitelijkeVereniging"
+        vereniging["@type"] = "fei:Vereniging"
         vereniging["datumLaatsteAanpassing"] = vereniging.get("metadata", {}).get("datumLaatsteAanpassing")
         transformed_data.append(vereniging)
     return transformed_data
