@@ -24,25 +24,21 @@ def fetch_data(access_token, postcode, limit=100):
         print("Paginated URL:", paginated_url)
         try:
             response = requests.get(paginated_url, headers=headers, timeout=30)
-            if response.status_code == 200:
-                data = response.json()
-                v_codes.extend(
-                    [vereniging.get("vCode") for vereniging in data.get("verenigingen", [])]
-                )
+            # Raise an exception for non-2xx statuses
+            response.raise_for_status()
+            data = response.json()
+            verenigingen = data.get("verenigingen", [])
+            v_codes.extend(
+                [vereniging.get("vCode") for vereniging in verenigingen]
+            )
 
-                if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
-                    offset += limit
-                    print("Offset:", offset)
-                else:
-                    break
+            if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
+                offset += limit
+                print("Offset:", offset)
             else:
-                print(
-                    f"Error fetching data for postcode {postcode}: {response.status_code}"
-                )
                 break
         except requests.exceptions.RequestException as e:
-            print(f"Request failed for {paginated_url}: {e}")
-            break
+            raise RuntimeError(f"Request failed for {paginated_url}: {e}")
     return v_codes
 
 

@@ -14,15 +14,18 @@ from helpers import logger
 from lblod.data_fetcher import fetch_vcodes, fetch_context
 from lblod.detail_fetcher import fetch_detail_urls
 from lblod.transform_data import transform_data
-import json
 
 
-def get_item(rdo, task):
+def get_item(task):
     api_url = os.environ["API_URL"]
-    vcodes = fetch_vcodes()
-    data = fetch_detail_urls(vcodes)
-    context = fetch_context()
-    transformed_data = transform_data(data)
+    try:
+        vcodes = fetch_vcodes()
+        data = fetch_detail_urls(vcodes)
+        context = fetch_context()
+        transformed_data = transform_data(data)
+    except Exception as e:
+        logger.error(e)
+        update_task_status(task["uri"], TASK_STATUSES["FAILED"])
     all_data = {"@context": context, "verenigingen": transformed_data, "url": api_url}
     return json.dumps(all_data)
 

@@ -16,19 +16,17 @@ def fetch_detail_url(access_token, v_code):
     }
     try:
         response = requests.get(url, headers=headers, timeout=30)
-        if response.status_code == 200:
-            data = response.json()
-            association = data.get("vereniging")
-            metadata = data.get("metadata")
-            association["metadata"] = metadata
-            print(f"vCode: {v_code}")
-            return association
-        else:
-            print(f"Error fetching detail URL for v_code {v_code}: {response.status_code}")
-            return None
+        response.raise_for_status()  # Raise an exception for non-2xx status
+        data = response.json()
+        association = data.get("vereniging")
+        metadata = data.get("metadata")
+        association["metadata"] = metadata
+        print(f"vCode: {v_code}")
+        return association
     except requests.exceptions.RequestException as e:
         print(f"Request failed for {url}: {e}")
-        return None
+        raise RuntimeError(f"Request failed for {url}: {e}")
+
 
 def fetch_detail_urls(all_vcodes):
     access_token = get_access_token()
