@@ -21,22 +21,9 @@ def fetch_data(access_token, postcode, task, limit=100):
     }
     offset = 0
     v_codes = []
+    more_data = True
 
-    def process_response(response, offset):
-        data = response.json()
-        v_codes.extend(
-            [vereniging.get("vCode") for vereniging in data.get("verenigingen", [])]
-        )
-
-        if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
-            offset += limit
-            logger.info(f"Offset: {offset}")
-        else:
-            return False  # No more data to fetch
-
-        return True
-
-    while True:
+    while more_data:
         pagination_params = f"&offset={offset}&limit={limit}"
         paginated_url = url + pagination_params
         logger.info(f"Paginated URL: {paginated_url}")
@@ -53,8 +40,18 @@ def fetch_data(access_token, postcode, task, limit=100):
                 )
                 response.raise_for_status()
 
-                if not process_response(response, offset):
-                    break  # Break out of retry loop if no more data to fetch
+                data = response.json()
+                v_codes.extend(
+                    [vereniging.get("vCode") for vereniging in data.get("verenigingen", [])]
+                )
+
+                if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
+                    offset += limit
+                    logger.info(f"Offset: {offset}")
+                else:
+                    more_data = False
+                break  # Break out of retry loop if data is successfully processed
+
 
             except requests.exceptions.HTTPError as http_err:
                 logger.error(f"HTTP error occurred for postcode {postcode}: {http_err}")
@@ -67,9 +64,15 @@ def fetch_data(access_token, postcode, task, limit=100):
             except Exception as e:
                 logger.error(f"An unexpected error occurred for postcode {postcode}: {e}")
             logger.info(f"Retrying... ({attempt + 1}/{retry_attempts})")
-        logger.error(f"Encountered exception while trying to write data to triplestore - {task['uri']}")
-        update_task_status(task["uri"], TASK_STATUSES["FAILED"])
+        if attempt == retry_attempts - 1:
+            logger.error(f"Encountered exception while trying to fetch data - {task['uri']}")
+            logger.error(f"Failed to fetch data for postcode: {postcode} after {retry_attempts} attempts.")
+            update_task_status(task["uri"], TASK_STATUSES["FAILED"])
+            raise requests.exceptions.RetryError(f"Failed to fetch data for postcode: {postcode} after {retry_attempts} attempts.")
+
+    logger.info(f"Data fetched successfully for postcode: {postcode}")
     return v_codes
+
 
 
 def fetch_vcodes(task):
@@ -102,7 +105,7 @@ def fetch_vcodes(task):
         except Exception as e:
             logger.error(f"Unexpected error while fetching vcodes: {e}")
             update_task_status(task["uri"], TASK_STATUSES["FAILED"])
-            return None
+            raise e
     else:
         logger.error("Failed to obtain access token")
         update_task_status(task["uri"], TASK_STATUSES["FAILED"])
@@ -113,16 +116,20 @@ def fetch_context(task):
     context_url = "https://publiek.verenigingen.staging-vlaanderen.be/v1/contexten/beheer/detail-vereniging-context.json"
 
     try:
-        context = get_context(context_url)
-        if context is not None:
-            logger.info("Context successfully fetched and updated.")
-            return context
-        else:
-            logger.error("Failed to fetch context.")
-            update_task_status(task, TASK_STATUSES["FAILED"])
+        try:
+            context = get_context(context_url)
+            if context is not None:
+                logger.info("Context successfully fetched and updated.")
+                return context
+            else:
+                update_task_status(task["uri"], TASK_STATUSES["FAILED"])
+                return None
+        except Exception as e:
+            logger.error(f"Error occurred while fetching context: {e}")
+            update_task_status(task[uri], TASK_STATUSES["FAILED"])
             return None
 
     except Exception as e:
         logger.error(f"Unexpected error occurred while fetching context: {e}")
-        update_task_status(task, TASK_STATUSES["FAILED"])
+        update_task_status(task[uri], TASK_STATUSES["FAILED"])
         return None
