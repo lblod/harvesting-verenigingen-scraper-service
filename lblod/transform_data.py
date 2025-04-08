@@ -3,13 +3,11 @@ import os
 import json
 import uuid
 
-
 def create_uuid_from_string(input_string):
     if input_string:
         generated_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, input_string)
         return generated_uuid
     return ""
-
 
 def transform_data(data):
     current_directory = os.path.dirname(os.path.realpath(__file__))
@@ -19,17 +17,17 @@ def transform_data(data):
     transformed_data = []
 
     def create_location(locatie):
-            return {
-                "@id": locatie.get("@id", ""),
-                "@type": locatie.get("@type", ""),
-                "description": locatie.get("naam", "") ,
-                "locatieType": {
-                    "@id": "con:" + str(create_uuid_from_string(locatie.get("locatietype", ""))),
-                    "@type": "concept:TypeVestiging",
-                    "naam": locatie.get("locatietype", ""),
-                },
-                "bestaatUit": {**locatie.get("adres", {}), "adresvoorstelling": locatie.get("adresvoorstelling", "")}
-            }
+        return {
+            "@id": locatie.get("@id", ""),
+            "@type": locatie.get("@type", ""),
+            "description": locatie.get("naam", "") ,
+            "locatieType": {
+                "@id": "con:" + str(create_uuid_from_string(locatie.get("locatietype", ""))),
+                "@type": "concept:TypeVestiging",
+                "naam": locatie.get("locatietype", ""),
+            },
+            "bestaatUit": {**locatie.get("adres", {}), "adresvoorstelling": locatie.get("adresvoorstelling", "")}
+        }
 
     def create_contact_point(contact):
         new_contact = {
