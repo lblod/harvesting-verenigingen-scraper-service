@@ -62,7 +62,7 @@ def transform_data(data):
             new_contact["website"] = contact["socialMedia"]
         return new_contact
 
-    def create_representative(representative_data ,v_code):
+    def create_representative(representative_data, v_code):
         # WARNING: dirty checks on the representative @id
         # JSONLD could be (e.g.)
         #   * `"@id": "http://www.w3.org/ns/person#8984-654-78965-654"`
@@ -83,7 +83,7 @@ def transform_data(data):
         representative_uuid = representative_id_split[-1]
 
         new_representative = {
-            "@id":  f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId')))}",
+            "@id": f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId')))}",
             "@type": "org:Membership",
             "vertegenwoordigerPersoon": {
                 "@id": f'persoon:{representative_uuid}',
