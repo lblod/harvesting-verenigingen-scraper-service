@@ -25,8 +25,11 @@ def delta_handler():
 def process_delta():
     try:
         request_data = request.get_json()
-        inserts, *_ = [changeset["inserts"]
-                       for changeset in request_data if "inserts" in changeset]
+        inserts = [
+            insert
+            for changeset in request_data
+            for insert in changeset["inserts"]
+        ]
         scheduled_tasks = [
             insert["subject"]["value"]
             for insert in inserts
