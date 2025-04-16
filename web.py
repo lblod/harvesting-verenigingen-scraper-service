@@ -1,6 +1,7 @@
 import os
 
 from flask import jsonify, request
+from flask_executor import Executor
 
 from lblod.pipeline import close_item, get_item, process_item, push_item_to_triplestore
 from lblod.job import load_task, update_task_status, TaskNotFoundException
@@ -14,13 +15,21 @@ DEFAULT_GRAPH = os.getenv(
 MU_APPLICATION_FILE_STORAGE_PATH = os.getenv(
     "MU_APPLICATION_FILE_STORAGE_PATH", "")
 
+executor = Executor(app)
 
 @app.route("/delta", methods=["POST"])
 def delta_handler():
+    executor.submit(process_delta)
+    return jsonify({"message": "thanks for all the fish!"})
+
+def process_delta():
     try:
         request_data = request.get_json()
-        inserts, *_ = [changeset["inserts"]
-                       for changeset in request_data if "inserts" in changeset]
+        inserts = [
+            insert
+            for changeset in request_data
+            for insert in changeset["inserts"]
+        ]
         scheduled_tasks = [
             insert["subject"]["value"]
             for insert in inserts
@@ -54,4 +63,3 @@ def delta_handler():
                 print(f"Task not found for {uri}")
     except Exception as e:
         print(f"An error occurred: {str(e)}")
-    return jsonify({"message": "thanks for all the fish!"})
