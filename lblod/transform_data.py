@@ -124,7 +124,8 @@ def transform_data(data):
             formattedStatus = item["status"].strip().lower()
             if formattedStatus == "actief":
                 status = { "@id": "http://lblod.data.gift/concepts/63cc561de9188d64ba5840a42ae8f0d6" }
-            elif formattedStatus == "niet actief":
+            elif formattedStatus == "niet actief" or formattedStatus == "gestopt":
+                # TODO: check whether gestopt should be considered the same as 'niet actief'
                 status = { "@id": "http://lblod.data.gift/concepts/d02c4e12bf88d2fdf5123b07f29c9311" }
             elif formattedStatus == "in oprichting":
                 status = { "@id": "http://lblod.data.gift/concepts/abf4fee82019f88cf122f986830621ab" }
