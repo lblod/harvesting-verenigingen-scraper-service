@@ -62,12 +62,31 @@ def transform_data(data):
             new_contact["website"] = contact["socialMedia"]
         return new_contact
 
-    def create_representative(representative_data ,v_code):
+    def create_representative(representative_data, v_code):
+        # WARNING: dirty checks on the representative @id
+        # JSONLD could be (e.g.)
+        #   * `"@id": "http://www.w3.org/ns/person#8984-654-78965-654"`
+        #   * `"@id": "http://data.lblod.info/id/persoon/8984-654-78965-654"`
+        #   * `"@id": "persoon:8984-654-78965-654"`
+        #   * `"@id": "person:8984-654-78965-654"`
+        # and we want to always translate to namespace `persoon:`
+        representative_id = representative_data.get("@id", "")
+        representative_id_split = None
+        if representative_id.startswith("http"):
+            representative_id_split = representative_id.split("#")
+            if len(representative_id_split) < 2:
+                representative_id_split = representative_id.split("/")
+        else:
+            representative_id_split = representative_id.split(":")
+        if len(representative_id_split) < 2:
+            representative_id_split = [create_uuid_from_string(f"{v_code}_{representative_id}")]
+        representative_uuid = representative_id_split[-1]
+
         new_representative = {
-            "@id":  f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId')))}",
+            "@id": f"lidmaatschap:{create_uuid_from_string(v_code + '_' + str(representative_data.get('vertegenwoordigerId')))}",
             "@type": "org:Membership",
             "vertegenwoordigerPersoon": {
-                "@id": representative_data.get("@id", ""),
+                "@id": f'persoon:{representative_uuid}',
                 "@type": representative_data.get("@type", ""),
                 "voornaam": representative_data.get("voornaam", ""),
                 "achternaam": representative_data.get("achternaam", ""),
