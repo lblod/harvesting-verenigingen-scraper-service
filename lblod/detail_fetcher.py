@@ -6,8 +6,7 @@ import uuid
 from helpers import logger
 from lblod.job import update_task_status
 from constants import TASK_STATUSES
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry # type: ignore
+
 
 api_url = os.environ["API_URL"]
 
