@@ -18,13 +18,25 @@ import json
 
 
 def get_item(rdo, task):
-    api_url = os.environ["API_URL"]
-    vcodes = fetch_vcodes(task)
-    data = fetch_detail_urls(vcodes, task)
-    context = fetch_context(task)
-    transformed_data = transform_data(data)
-    all_data = {"@context": context, "verenigingen": transformed_data, "url": api_url}
-    return json.dumps(all_data)
+    try:
+        api_url = os.environ["API_URL"]
+        vcodes = fetch_vcodes(task)
+        data = fetch_detail_urls(vcodes, task)
+        context = fetch_context(task)
+        transformed_data = transform_data(data)
+        all_data = {
+            "@context": context,
+            "verenigingen": transformed_data,
+            "url": api_url,
+        }
+        return json.dumps(all_data)
+    except KeyError as e:
+        logger.error(f"Missing environment variable: {e}")
+        raise
+    except Exception as e:
+        update_task_status(task["uri"], TASK_STATUSES["FAILED"])
+        logger.error(f"Error in get_item: {e}")
+        raise
 
 
 def process_item(content, rdo):

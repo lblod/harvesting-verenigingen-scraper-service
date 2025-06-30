@@ -17,48 +17,68 @@ def fetch_data(access_token, postcode, limit=100):
     url = f"{api_url}verenigingen/zoeken?q=locaties.postcode:{postcode}"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "x-correlation-id": str(correlation_id)
+        "x-correlation-id": str(correlation_id),
     }
     offset = 0
     v_codes = []
+    max_retries = 5
 
     while True:
         pagination_params = f"&offset={offset}&limit={limit}"
         paginated_url = url + pagination_params
         logger.info(f"Paginated URL: {paginated_url}")
 
-        try:
-            response = requests.get(paginated_url, headers=headers, timeout=30)
-            response.raise_for_status()
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(paginated_url, headers=headers, timeout=30)
+                response.raise_for_status()
 
-            data = response.json()
-            v_codes.extend(
-                [vereniging.get("vCode") for vereniging in data.get("verenigingen", [])]
-            )
+                data = response.json()
+                v_codes.extend(
+                    [
+                        vereniging.get("vCode")
+                        for vereniging in data.get("verenigingen", [])
+                    ]
+                )
 
-            if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
-                offset += limit
-                logger.info(f"Offset: {offset}")
-            else:
-                break
+                if data["metadata"]["pagination"]["totalCount"] > (offset + limit):
+                    offset += limit
+                    logger.info(f"Offset: {offset}")
+                else:
+                    return v_codes  # All data fetched, exit function
+                break  # Success, break out of retry loop
 
-        except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP error occurred for postcode {postcode}: {http_err}")
-            break
-        except requests.exceptions.ConnectionError as conn_err:
-            logger.error(f"Connection error occurred for postcode {postcode}: {conn_err}")
-            break
-        except requests.exceptions.Timeout as timeout_err:
-            logger.error(f"Timeout error occurred for postcode {postcode}: {timeout_err}")
-            break
-        except requests.exceptions.RequestException as req_err:
-            logger.error(f"Request exception occurred for postcode {postcode}: {req_err}")
-            break
-        except Exception as e:
-            logger.error(f"An unexpected error occurred for postcode {postcode}: {e}")
-            break
+            except requests.exceptions.Timeout as timeout_err:
+                logger.error(
+                    f"Timeout error occurred for postcode {postcode} (attempt {attempt+1}/{max_retries}): {timeout_err}"
+                )
+                if attempt == max_retries - 1:
+                    logger.error(
+                        f"Encountered exception while trying tofetch associations codes"
+                    )
+                    raise
+                logger.info("Retrying due to timeout...")
+            except (
+                requests.exceptions.HTTPError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException,
+            ) as req_err:
+                logger.error(
+                    f"Request error occurred for postcode {postcode}: {req_err}"
+                )
+                logger.error(
+                    f"Encountered exception while trying tofetch associations codes"
+                )
+                raise
+            except Exception as e:
+                logger.error(
+                    f"An unexpected error occurred for postcode {postcode}: {e}"
+                )
+                logger.error(
+                    f"Encountered exception while trying tofetch associations codes - {task['uri']}"
+                )
+                raise
 
-    return v_codes
 
 def fetch_vcodes(task):
     current_directory = os.path.dirname(os.path.realpath(__file__))
