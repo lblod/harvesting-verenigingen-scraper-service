@@ -50,11 +50,11 @@ def fetch_data(access_token, postcode, limit=100):
 
             except requests.exceptions.Timeout as timeout_err:
                 logger.error(
-                    f"Timeout error occurred for postcode {postcode} (attempt {attempt+1}/{max_retries}): {timeout_err}"
+                    f"Timeout error occurred for postcode {postcode} (attempt {attempt+1}/{max_retries}), correlation_id: {correlation_id}: {timeout_err}"
                 )
                 if attempt == max_retries - 1:
                     logger.error(
-                        f"Encountered exception while trying tofetch associations codes"
+                        f"Encountered exception while trying to fetch associations codes, correlation_id: {correlation_id}"
                     )
                     raise
                 logger.info("Retrying due to timeout...")
@@ -64,18 +64,12 @@ def fetch_data(access_token, postcode, limit=100):
                 requests.exceptions.RequestException,
             ) as req_err:
                 logger.error(
-                    f"Request error occurred for postcode {postcode}: {req_err}"
-                )
-                logger.error(
-                    f"Encountered exception while trying tofetch associations codes"
+                    f"Request error occurred for postcode {postcode}, correlation_id: {correlation_id}: {req_err}"
                 )
                 raise
             except Exception as e:
                 logger.error(
-                    f"An unexpected error occurred for postcode {postcode}: {e}"
-                )
-                logger.error(
-                    f"Encountered exception while trying tofetch associations codes - {task['uri']}"
+                    f"An unexpected error occurred for postcode {postcode}, correlation_id: {correlation_id}: {e}"
                 )
                 raise
 
