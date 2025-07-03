@@ -21,9 +21,17 @@ def get_item(rdo, task):
     try:
         api_url = os.environ["API_URL"]
         vcodes = fetch_vcodes(task)
+        if not vcodes:
+            raise ValueError("No vCodes found for the given postal codes.")
         data = fetch_detail_urls(vcodes, task)
+        if not data:
+            raise ValueError("No data fetched for the provided vCodes.")
         context = fetch_context(task)
+        if not context:
+            raise ValueError("No context fetched for the task.")
         transformed_data = transform_data(data)
+        if not transformed_data:
+            raise ValueError("No transformed data available.")
         all_data = {
             "@context": context,
             "verenigingen": transformed_data,
