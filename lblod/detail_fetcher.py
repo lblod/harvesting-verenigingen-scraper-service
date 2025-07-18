@@ -35,26 +35,26 @@ def fetch_detail_url(access_token, v_code, task):
                 logger.info(f"Successfully fetched data for vCode: {v_code}")
                 return association
             else:
-                logger.error(f"No association data found for vCode: {v_code}")
+                logger.error(f"No association data found for vCode: {v_code}, correlation_id: {correlation_id}")
                 return None
 
         except requests.exceptions.ConnectionError as conn_err:
-            logger.error(f"Connection error occurred for vCode {v_code}: {conn_err}")
+            logger.error(f"Connection error occurred for vCode {v_code}, correlation_id: {correlation_id}: {conn_err}")
         except requests.exceptions.Timeout as timeout_err:
-            logger.error(f"Timeout error occurred for vCode {v_code}: {timeout_err}")
+            logger.error(f"Timeout error occurred for vCode {v_code}, correlation_id: {correlation_id}: {timeout_err}")
         except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP error occurred for vCode {v_code}: {http_err}")
+            logger.error(f"HTTP error occurred for vCode {v_code}, correlation_id: {correlation_id}: {http_err}")
             break
         except requests.exceptions.RequestException as req_err:
-            logger.error(f"Request exception occurred for vCode {v_code}: {req_err}")
+            logger.error(f"Request exception occurred for vCode {v_code}, correlation_id: {correlation_id}: {req_err}")
             break
         except Exception as e:
-            logger.error(f"An unexpected error occurred for vCode {v_code}: {e}")
+            logger.error(f"An unexpected error occurred for vCode {v_code}, correlation_id: {correlation_id}: {e}")
             break
 
         logger.info(f"Retrying... ({attempt + 1}/{retry_attempts})")
 
-    logger.error(f"Encountered exception while trying to write data to triplestore - {task['uri']}")
+    logger.error(f"Encountered exception while trying to fetch details for vCode: {v_code}, correlation_id: {correlation_id}")
     update_task_status(task["uri"], TASK_STATUSES["FAILED"])
     return None
 
