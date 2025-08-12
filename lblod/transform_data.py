@@ -121,12 +121,12 @@ def transform_data(data):
 
         # STATUS MAPPING
         if "status" in item:
-            formattedStatus = item["status"].strip().lower()
-            if formattedStatus == "actief":
+            formatted_status = item["status"].strip().lower()
+            if formatted_status == "actief":
                 status = { "@id": "http://lblod.data.gift/concepts/63cc561de9188d64ba5840a42ae8f0d6" }
-            elif formattedStatus == "niet actief":
+            elif formatted_status == "niet actief":
                 status = { "@id": "http://lblod.data.gift/concepts/d02c4e12bf88d2fdf5123b07f29c9311" }
-            elif formattedStatus == "in oprichting":
+            elif formatted_status == "in oprichting":
                 status = { "@id": "http://lblod.data.gift/concepts/abf4fee82019f88cf122f986830621ab" }
 
         if not primary_location:
