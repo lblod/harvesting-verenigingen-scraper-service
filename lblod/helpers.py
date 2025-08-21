@@ -96,7 +96,8 @@ def get_context(url):
             "vertegenwoordigerPersoon": "org:member",
             "ere": "http://data.lblod.info/vocabularies/erediensten/",
             "adresvoorstelling": "locn:fullAddress",
-            "datumLaatsteAanpassing": "pav:lastUpdateOn"
+            "datumLaatsteAanpassing": "pav:lastUpdateOn",
+            "etag": "pav:version"
         })
 
         logger.info(f"Successfully fetched and updated context from {url}")
