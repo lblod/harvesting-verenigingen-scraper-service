@@ -27,10 +27,12 @@ def fetch_detail_url(access_token, v_code, task):
             response.raise_for_status()
 
             data = response.json()
+            etag = response.headers.get("etag")
             association = data.get("vereniging")
             metadata = data.get("metadata")
 
             if association is not None:
+                association["etag"] = etag
                 association["metadata"] = metadata
                 logger.info(f"Successfully fetched data for vCode: {v_code}")
                 return association
