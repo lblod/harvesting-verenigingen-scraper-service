@@ -45,6 +45,8 @@ def transform_data(data):
         }
         if contact["isPrimair"]:
             new_contact["primairContact"] = "Primary"
+        else:
+            new_contact["primairContact"] = "Secondary"
         if contact["contactgegeventype"] == "Telefoon":
             new_contact["telefoon"] = contact["waarde"]
         if contact["contactgegeventype"] == "E-mail":
@@ -85,6 +87,7 @@ def transform_data(data):
                 "contactgegevens": [],
             },
         }
+
         contact_info = representative_data.get("vertegenwoordigerContactgegevens", [])
         if contact_info:
             new_representative["vertegenwoordigerPersoon"]["contactgegevens"].append(
