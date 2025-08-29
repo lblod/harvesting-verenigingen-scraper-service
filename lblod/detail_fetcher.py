@@ -27,10 +27,16 @@ def fetch_detail_url(access_token, v_code, task):
             response.raise_for_status()
 
             data = response.json()
+            etag = response.headers.get("etag")
             association = data.get("vereniging")
             metadata = data.get("metadata")
 
+            if etag is None:
+                logger.error(f"The association data response did not have an ETag. This header is required. vCode: {v_code}, correlation_id: {correlation_id}")
+                return None
+
             if association is not None:
+                association["etag"] = etag
                 association["metadata"] = metadata
                 logger.info(f"Successfully fetched data for vCode: {v_code}")
                 return association
