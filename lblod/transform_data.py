@@ -18,7 +18,21 @@ def transform_data(data):
         association_types = json.load(file)
     transformed_data = []
 
+
     def create_location(locatie):
+        # pull the address-register URI if available
+        verwijst_naar_id = locatie.get("verwijstNaar", {}).get("@id")
+
+        # build the address representation
+        bestaat_uit = {
+            **locatie.get("adres", {}),
+            "adresvoorstelling": locatie.get("adresvoorstelling", ""),
+        }
+
+        # add adres:verwijstNaar as a linked @id if present
+        if verwijst_naar_id:
+            bestaat_uit["address:verwijstNaar"] = {"@id": verwijst_naar_id}
+
         return {
             "@id": locatie.get("@id", ""),
             "locatieId": locatie.get("locatieId", ""),
@@ -30,10 +44,7 @@ def transform_data(data):
                 "@type": "concept:TypeVestiging",
                 "naam": locatie.get("locatietype", ""),
             },
-            "bestaatUit": {
-                **locatie.get("adres", {}),
-                "adresvoorstelling": locatie.get("adresvoorstelling", ""),
-            },
+            "bestaatUit": bestaat_uit,
         }
 
     def create_contact_point(contact):
