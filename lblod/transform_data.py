@@ -153,6 +153,10 @@ def transform_data(data):
                 status = {
                     "@id": "http://lblod.data.gift/concepts/abf4fee82019f88cf122f986830621ab"
                 }
+            elif formatted_status == "gestopt":
+                status = {
+                    "@id": "http://lblod.data.gift/concepts/3d790fd9-bec9-43dd-840c-f835eda6997e"
+                }
 
         if not primary_location:
             for locatie in locaties:
