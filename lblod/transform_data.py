@@ -45,6 +45,8 @@ def transform_data(data):
         }
         if contact["isPrimair"]:
             new_contact["primairContact"] = "Primary"
+        else:
+            new_contact["primairContact"] = "Secondary"
         if contact["contactgegeventype"] == "Telefoon":
             new_contact["telefoon"] = contact["waarde"]
         if contact["contactgegeventype"] == "E-mail":
@@ -60,9 +62,6 @@ def transform_data(data):
         new_contact = {
             "@id": contact.get("@id", ""),
             "@type": contact.get("@type", ""),
-            "primairContact": (
-                "Primary" if contact.get("isPrimair", False) else "Secondary"
-            ),
         }
         if "telefoon" in contact:
             new_contact["telefoon"] = contact["telefoon"]
@@ -85,6 +84,12 @@ def transform_data(data):
                 "contactgegevens": [],
             },
         }
+
+        if representative_data.get("isPrimair", False):
+            new_representative["primaireVertegenwoordiger"] = { "@id": "lblodconcept:75e74415-35cf-4da5-bac5-b72a1c137799" }
+        else:
+            new_representative["primaireVertegenwoordiger"] = { "@id": "lblodconcept:78451ac5-ec0b-469d-b918-0a8ef92a77b2" }
+
         contact_info = representative_data.get("vertegenwoordigerContactgegevens", [])
         if contact_info:
             new_representative["vertegenwoordigerPersoon"]["contactgegevens"].append(
