@@ -1,3 +1,6 @@
+# We've deliberatly limted the number of works to "1"
+# Since we have a background job running that should only run once
+# We need to figure out how we can extrac to a seperate worker, but that is a TODO
 workers = 1
 worker_connections = 1000
 
