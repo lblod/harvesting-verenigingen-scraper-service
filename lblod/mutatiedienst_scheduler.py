@@ -30,9 +30,10 @@ def run_mutatiedienst_pipeline():
         logger.warning(f"Other jobs are running that might affect the mutatiedienst job. Skipping...")
         return
 
-    sequenceData = fetch_last_successful_sequence_number()
+    sequence_data = fetch_last_successful_sequence_number()
 
-    if not sequenceData:
+
+    if not sequence_data:
         logger.info(f"""
           No sequence number was found.
           This means an initial full sync hasn't started yet.
@@ -40,11 +41,11 @@ def run_mutatiedienst_pipeline():
         """)
         return
 
-    mutatiedienst_changes = fetch_data_mutatiedienst(sequenceData["since"])
+    mutatiedienst_changes = fetch_data_mutatiedienst(sequence_data["since"])
 
     # Assumes there is one job at the time!
     if len(mutatiedienst_changes) == 0:
-        logger.info(f"No changes found since: {sequenceData['since']}. Skipping")
+        logger.info(f"No changes found since: {sequence_data['since']}. Skipping")
         return
 
     last_sequence = mutatiedienst_changes[-1]["sequence"] # Assumes it's a sorted list
@@ -58,7 +59,7 @@ def run_mutatiedienst_pipeline():
     try:
         task = load_task(task_uri)
         json_data = process_task(task, vCodes, MUTATIEDIENST_URL,
-                                 { "@id": sequenceData["subject"],
+                                 { "@id": sequence_data["subject"],
                                    "lastSequenceMutatiedienst": last_sequence
                                   })
         json_file_data = save_json_on_disk(json_data)

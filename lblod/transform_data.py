@@ -142,7 +142,7 @@ def transform_data(data):
 
         # LOCATIES
 
-        if not 'locaties' in item:
+        if 'locaties' not in item:
             logger.warning(f"We have found vereniging {v_code} with no location. Skipping import, since our apps rely on this")
             continue
 
