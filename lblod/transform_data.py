@@ -3,6 +3,7 @@ import os
 import json
 import uuid
 
+from helpers import logger
 
 def create_uuid_from_string(input_string):
     if input_string:
@@ -109,6 +110,10 @@ def transform_data(data):
         return new_representative
 
     for item in data:
+        if item["type"] == "RemovedResource":
+            #TODO: revise pipeline. It's okay to skip these here.
+            logger.info(f"Found a {item['type']} for {item['vCode']}. Skipping")
+            continue
         vereniging = copy.deepcopy(item)
         v_code = vereniging.get("vCode", "")
         primary_location = None
