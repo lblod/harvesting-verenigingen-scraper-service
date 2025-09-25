@@ -17,13 +17,16 @@ def fetch_last_successful_sequence_number():
       }
     """
     result = query_sudo(query_string)
-    if len(result["results"]["bindings"]) == 1:
-        return {
-            "since": result["results"]["bindings"][0]["since"]["value"],
-            "subject": result["results"]["bindings"][0]["subject"]["value"]
-        }
+    if len(result["results"]["bindings"]) <= 1:
+        if len(result["results"]["bindings"]) == 0:
+            return None
+        else:
+          return {
+              "since": result["results"]["bindings"][0]["since"]["value"],
+              "subject": result["results"]["bindings"][0]["subject"]["value"]
+          }
     else:
-        raise Exception(f"Unexpected amount of sequence numbers stored in database: {len(result['results']['bindings'])}")
+        raise Exception(f"Too manysequence numbers stored in database: {len(result['results']['bindings'])}")
 
 def run_mutatiedienst_pipeline():
     if(any_other_harvest_jobs_running()):
@@ -31,7 +34,6 @@ def run_mutatiedienst_pipeline():
         return
 
     sequence_data = fetch_last_successful_sequence_number()
-
 
     if not sequence_data:
         logger.info(f"""
