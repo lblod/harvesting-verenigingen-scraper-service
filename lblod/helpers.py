@@ -99,7 +99,8 @@ def get_context(url):
             "ere": "http://data.lblod.info/vocabularies/erediensten/",
             "adresvoorstelling": "locn:fullAddress",
             "datumLaatsteAanpassing": "pav:lastUpdateOn",
-            "etag": "pav:version"
+            "etag": "pav:version",
+            "lastSequenceMutatiedienst": "http://data.lblod.info/vocabularies/FeitelijkeVerenigingen/lastSequenceMutatiedienst"
         })
 
         logger.info(f"Successfully fetched and updated context from {url}")
