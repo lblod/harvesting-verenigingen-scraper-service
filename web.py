@@ -8,8 +8,12 @@ from lblod.file import save_json_on_disk
 from lblod.job import load_task, update_task_status, TaskNotFoundException
 from lblod.harvester import get_harvest_collection_for_task, get_initial_remote_data_object
 from lblod.data_fetcher import fetch_vcodes
-from constants import OPERATIONS, TASK_STATUSES, MUTATIEDIENST_SYNC_INTERVAL_SECONDS, MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW
-from helpers import logger
+from constants import OPERATIONS,
+  TASK_STATUSES,
+  MUTATIEDIENST_SYNC_INTERVAL_SECONDS,
+  MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW,
+  API_URL
+from helpers import logger, fetch_last_successful_sequence_number
 
 from lblod.mutatiedienst_scheduler import fetch_data_mutatiedienst, run_mutatiedienst_pipeline
 
@@ -75,10 +79,14 @@ def process_delta():
                 task = load_task(uri)
                 if task["operation"] == OPERATIONS["COLLECTING"]:
                     update_task_status(task["uri"], TASK_STATUSES["BUSY"])
+
+                    mutatiedienst_changes = fetch_last_successful_sequence_number();
+                    last_sequence = mutatiedienst_changes[-1]["sequence"] # Assumes it's a sorted list
+
                     collection = get_harvest_collection_for_task(task)
                     rdo = get_initial_remote_data_object(collection)
                     vcodes = fetch_vcodes(task)
-                    data = process_task(task, vcodes)
+                    data = process_task(task, vcodes, API_URL, last_sequence)
                     json_file_data = save_json_on_disk(data, rdo)
                     try:
                         save_json_file_in_triplestore(json_file_data)

@@ -4,7 +4,7 @@ import os
 import uuid
 import gzip
 
-from constants import DEFAULT_GRAPH, TASK_STATUSES, MUTATIEDIENST_URL
+from constants import DEFAULT_GRAPH, TASK_STATUSES, MUTATIEDIENST_URL, API_URL
 
 from lblod.file import STORAGE_PATH, construct_insert_file_query
 from lblod.harvester import collection_has_collected_files, create_results_container
