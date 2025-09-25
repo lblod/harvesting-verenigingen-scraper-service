@@ -59,7 +59,7 @@ def fetch_detail_url(access_token, v_code, task):
                 logger.warning(f"We've found a removed vCode {v_code}. Skipping.")
                 # TODO: we need to revise the pipeline.
                 #   For now we created an adhoc object so we can work with this further down the line.
-                return { type: 'RemovedResource', "vCode": v_code }
+                return { "type": 'RemovedResource', "vCode": v_code }
             else:
                 logger.error(f"Unexpected http error: {str(fail_body)}")
 
