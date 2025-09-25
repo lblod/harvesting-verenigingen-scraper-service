@@ -44,6 +44,14 @@ def run_mutatiedienst_pipeline():
 
     sequenceData = fetch_last_successful_sequence_number()
 
+    if not sequenceData:
+        logger.info(f"""
+          No sequence number was found.
+          This means an initial full sync hasn't started yet.
+          Skipping iteration.
+        """)
+        return
+
     mutatiedienst_changes = fetch_data_mutatiedienst(sequenceData["since"])
 
     # Assumes there is one job at the time!
