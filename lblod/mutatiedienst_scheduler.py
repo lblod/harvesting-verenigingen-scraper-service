@@ -51,9 +51,6 @@ def run_mutatiedienst_pipeline():
         logger.info(f"No changes found since: {sequenceData['since']}. Skipping")
         return
 
-    # TODO: remove
-    mutatiedienst_changes = mutatiedienst_changes[1:4]
-
     last_sequence = mutatiedienst_changes[-1]["sequence"] # Assumes it's a sorted list
 
     # TODO: assume this is a set, and mutatiedienst does the hard work for you in folding themselves
