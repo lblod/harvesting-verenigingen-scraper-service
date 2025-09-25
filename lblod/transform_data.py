@@ -109,7 +109,7 @@ def transform_data(data):
         return new_representative
 
     for item in data:
-        if item["type"] == "RemovedResource":
+        if item.get("type") == "RemovedResource":
             #TODO: revise pipeline. It's okay to skip these here.
             logger.info(f"Found a {item['type']} for {item['vCode']}. Skipping")
             continue
