@@ -6,7 +6,7 @@ JOB_TYPE = "http://vocab.deri.ie/cogs#Job"
 TASK_TYPE = "http://redpencil.data.gift/vocabularies/tasks/Task"
 
 DEFAULT_GRAPH = os.environ.get('DEFAULT_GRAPH', None) or 'http://mu.semte.ch/graphs/public'
-MUTADIEDIENST_SYNC_INTERVAL = int(os.environ.get('MUTADIEDIENST_SYNC_INTERVAL', 1))
+MUTADIEDIENST_SYNC_CRON = os.environ.get('MUTADIEDIENST_SYNC_CRON', '*/5 * 7-20 * * *')
 
 FILE_STATUSES =  {
     'READY': 'http://lblod.data.gift/file-download-statuses/ready-to-be-cached',
