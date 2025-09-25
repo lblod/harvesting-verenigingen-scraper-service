@@ -3,11 +3,15 @@ import os
 from flask import jsonify, request
 from flask_executor import Executor
 
-from lblod.pipeline import close_item, get_item, process_item, push_item_to_triplestore
+from lblod.pipeline import close_item, process_task, save_json_file_in_triplestore
+from lblod.file import save_json_on_disk
 from lblod.job import load_task, update_task_status, TaskNotFoundException
 from lblod.harvester import get_harvest_collection_for_task, get_initial_remote_data_object
-from constants import OPERATIONS, TASK_STATUSES
+from lblod.data_fetcher import fetch_vcodes
+from constants import OPERATIONS, TASK_STATUSES, MUTADIEDIENST_SYNC_INTERVAL
 from helpers import logger
+
+from lblod.mutatiedienst_scheduler import fetch_data_mutatiedienst, run_mutatiedienst_pipeline
 
 AUTO_RUN = os.getenv("AUTO_RUN") in ["yes", "on", "true", True, "1", 1]
 DEFAULT_GRAPH = os.getenv(
@@ -16,6 +20,25 @@ MU_APPLICATION_FILE_STORAGE_PATH = os.getenv(
     "MU_APPLICATION_FILE_STORAGE_PATH", "")
 
 executor = Executor(app)
+
+from apscheduler.schedulers.background import BackgroundScheduler
+scheduler = BackgroundScheduler()
+
+logger.info(f"Sync interval for mutatiedienst pipeline: {MUTADIEDIENST_SYNC_INTERVAL} second(s)")
+
+def wrapped_job_mutatiedienst():
+    try:
+        run_mutatiedienst_pipeline()
+    except Exception as err:
+        # TODO: store error
+        logger.error(f"An error occured during the scheduling of mutatiedienst pipeline. (i.e. before the real job starts)")
+        logger.error(f"{err}")
+
+scheduler.add_job(wrapped_job_mutatiedienst, "interval", seconds=MUTADIEDIENST_SYNC_INTERVAL, max_instances=1, coalesce=True)
+# Note : while running this service in development mode, you might notice that the jobs are executed twice
+# It's related to the debug mode of Flask, which does not apply to the built version.)
+scheduler.start()
+
 
 @app.route("/delta", methods=["POST"])
 def delta_handler():
@@ -46,10 +69,11 @@ def process_delta():
                     update_task_status(task["uri"], TASK_STATUSES["BUSY"])
                     collection = get_harvest_collection_for_task(task)
                     rdo = get_initial_remote_data_object(collection)
-                    data = get_item(rdo, task)
-                    item = process_item(data, rdo)
+                    vcodes = fetch_vcodes(task)
+                    data = process_task(task, vcodes)
+                    json_file_data = save_json_on_disk(data, rdo)
                     try:
-                        push_item_to_triplestore(item)
+                        save_json_file_in_triplestore(json_file_data)
                         close_item(collection, task)
                     except Exception as e:
                         logger.error(

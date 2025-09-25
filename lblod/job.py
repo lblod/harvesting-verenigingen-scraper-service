@@ -1,12 +1,13 @@
 import os
-import datetime
+from datetime import datetime, timezone
 from string import Template
 
+from helpers import generate_uuid
 from escape_helpers import sparql_escape_uri, sparql_escape_datetime, sparql_escape_string, sparql_escape_int
-from helpers import generate_uuid, logger
 from sudo_query import auth_update_sudo, update_sudo, query_sudo
 
-from constants import SCRAPE_JOB_TYPE, RESOURCE_BASE, DEFAULT_GRAPH
+from constants import PREFIXES, RESOURCE_BASE, JOB_TYPE, TASK_TYPE, TASK_STATUSES, DEFAULT_GRAPH, JOB_CREATOR_URI, OPERATIONS
+
 
 ############################################################
 # TODO: keep this generic and extract into packaged module later
@@ -93,41 +94,86 @@ def update_task_status (task, status, graph=DEFAULT_GRAPH):
       }
     }
     """)
-    time = datetime.datetime.now()
+    time = datetime.now(timezone.utc)
     query_string = query_template.substitute(
         graph=sparql_escape_uri(graph),
         subject=sparql_escape_uri(task),
-        modified=sparql_escape_datetime(datetime.datetime.now()),
+        modified=sparql_escape_datetime(datetime.now(timezone.utc)),
         status=sparql_escape_uri(status)
     )
     update_sudo(query_string)
 
-def add_stats_to_task(task, stats, graph=DEFAULT_GRAPH):
-    query_template = Template("""
-PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-PREFIX prov: <http://www.w3.org/ns/prov#>
-PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX cogs: <http://vocab.deri.ie/cogs#>
-PREFIX scrapy: <http://redpencil.data.gift/vocabularies/scrapy/>
-INSERT DATA {
-    GRAPH $graph {
-        $task prov:startedAtTime $start_time;
-             prov:endedAtTime $end_time;
-             scrapy:itemsScrapedCount $items;
-             scrapy:responseReceivedCount $pages;
-             scrapy:requestDepthMax $depth.
-    }
-}
-""")
-    query_string = query_template.substitute(
-        graph = sparql_escape_uri(graph),
-        start_time = sparql_escape_datetime(stats["start_time"]),
-        end_time = sparql_escape_datetime(stats["end_time"]),
-        pages = sparql_escape_int(stats["pages"]),
-        items = sparql_escape_int(stats["items"]),
-        depth = sparql_escape_int(stats["depth"]),
-        task = sparql_escape_uri(task)
-    )
-    update_sudo(query_string)
+def create_job(job_operation_uri):
+    """
+    Creates a new job in the specified graph.
+    """
+    job_id = str(generate_uuid())
+    job_uri = RESOURCE_BASE + job_id
+    created = datetime.now(timezone.utc)
+
+    create_job_query = f"""
+    {PREFIXES}
+    INSERT DATA {{
+      GRAPH {sparql_escape_uri(DEFAULT_GRAPH)}{{
+        {sparql_escape_uri(job_uri)} a {sparql_escape_uri(JOB_TYPE)};
+                                      mu:uuid {sparql_escape_string(job_id)};
+                                      dct:creator {sparql_escape_uri(JOB_CREATOR_URI)};
+                                      adms:status {sparql_escape_uri(TASK_STATUSES["BUSY"])};
+                                      dct:created {sparql_escape_datetime(created)};
+                                      dct:modified {sparql_escape_datetime(created)};
+                                      task:operation {sparql_escape_uri(job_operation_uri)}.
+      }}
+    }}
+    """
+    update_sudo(create_job_query)
+
+    return job_uri
+
+def create_task(job_uri, task_operation_uri, task_index="0"):
+    """
+    Schedules a new task for a given job.
+    """
+    task_id = str(generate_uuid())
+    task_uri = RESOURCE_BASE + task_id
+    created = datetime.now(timezone.utc)
+
+    create_task_query = f"""
+    {PREFIXES}
+    INSERT DATA {{
+      GRAPH {sparql_escape_uri(DEFAULT_GRAPH)} {{
+          {sparql_escape_uri(task_uri)} a {sparql_escape_uri(TASK_TYPE)};
+                                       mu:uuid {sparql_escape_string(task_id)};
+                                       adms:status {sparql_escape_uri(TASK_STATUSES["BUSY"])};
+                                       dct:created {sparql_escape_datetime(created)};
+                                       dct:modified {sparql_escape_datetime(created)};
+                                       task:operation {sparql_escape_uri(task_operation_uri)};
+                                       task:index {sparql_escape_string(task_index)};
+                                       dct:isPartOf {sparql_escape_uri(job_uri)}.
+      }}
+    }}"""
+
+    update_sudo(create_task_query)
+
+    return task_uri
+
+
+def any_other_harvest_jobs_running():
+    query_string = f"""
+      {PREFIXES}
+      ASK {{
+        VALUES ?operation {{
+         {sparql_escape_uri(OPERATIONS['FULL_HARVEST_JOB'])}
+         {sparql_escape_uri(OPERATIONS['INCREMENTAL_COLLECTING'])}
+        }}
+        VALUES ?status {{
+         {sparql_escape_uri(TASK_STATUSES['BUSY'])}
+         {sparql_escape_uri(TASK_STATUSES['SCHEDULED'])}
+        }}
+        ?s a cogs:Job;
+          task:operation ?operation;
+          adms:status ?status .
+      }}
+    """
+    result = query_sudo(query_string)
+    return result["boolean"]
 
