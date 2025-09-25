@@ -148,11 +148,17 @@ The service can be configured with the following environment variables:
 - **Description:**
   RDF graph where the data is stored. Change this if you want the scraper to write to a different graph.
 
-#### `MUTADIEDIENST_SYNC_CRON`
-- **Default:** `*/5 * 7-20 * * *`
+#### `MUTATIEDIENST_SYNC_INTERVAL_SECONDS`
+- **Default:** `*/5`
 - **Description:**
-  Cron expression that controls how often the mutatiedienst incremental sync runs.
-  The default means: every 5 minutes, between 07:00 and 20:59.
+  Interval in seconds for how often the mutatiedienst incremental sync runs.
+  The default means: every 5 seconds.
+
+#### `MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW`
+- **Default:** `7-20`
+- **Description:**
+  Active hours (in 24h format) during which the mutatiedienst incremental sync runs.
+  The default means: only run between 07:00 and 20:59.
 
 #### `PUBLIC_API_BASE_VERENIGINGENREGISTER`
 - **Default:** `https://publiek.verenigingen.staging-vlaanderen.be`

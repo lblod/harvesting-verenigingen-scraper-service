@@ -8,7 +8,7 @@ from lblod.file import save_json_on_disk
 from lblod.job import load_task, update_task_status, TaskNotFoundException
 from lblod.harvester import get_harvest_collection_for_task, get_initial_remote_data_object
 from lblod.data_fetcher import fetch_vcodes
-from constants import OPERATIONS, TASK_STATUSES, MUTADIEDIENST_SYNC_CRON
+from constants import OPERATIONS, TASK_STATUSES, MUTATIEDIENST_SYNC_INTERVAL_SECONDS, MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW
 from helpers import logger
 
 from lblod.mutatiedienst_scheduler import fetch_data_mutatiedienst, run_mutatiedienst_pipeline
@@ -26,7 +26,8 @@ from apscheduler.triggers.cron import CronTrigger
 
 scheduler = BackgroundScheduler()
 
-logger.info(f"Mutatiedienst cron pattern: {MUTADIEDIENST_SYNC_CRON}")
+logger.info(f"Mutatiedienst sync interval (in seconds): {MUTATIEDIENST_SYNC_INTERVAL_SECONDS}")
+logger.info(f"Mutatiedienst sync interval activity window of the day: {MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW}")
 
 def wrapped_job_mutatiedienst():
     try:
@@ -36,7 +37,12 @@ def wrapped_job_mutatiedienst():
         logger.error(f"An error occured during the scheduling of mutatiedienst pipeline. (i.e. before the real job starts)")
         logger.error(f"{err}")
 
-scheduler.add_job(wrapped_job_mutatiedienst, CronTrigger.from_crontab(MUTADIEDIENST_SYNC_CRON), max_instances=1, coalesce=True)
+scheduler.add_job(wrapped_job_mutatiedienst,
+                  'cron',
+                  second=MUTATIEDIENST_SYNC_INTERVAL_SECONDS,
+                  hour=MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW,
+                  max_instances=1,
+                  coalesce=True)
 # Note : while running this service in development mode, you might notice that the jobs are executed twice
 # It's related to the debug mode of Flask, which does not apply to the built version.)
 scheduler.start()
