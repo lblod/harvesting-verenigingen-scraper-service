@@ -1,6 +1,5 @@
 import os
-import requests
-from helpers import logger
+from helpers import logger, fetch_data_mutatiedienst
 from sudo_query import query_sudo
 from lblod.job import create_job, create_task, load_task, update_task_status, any_other_harvest_jobs_running
 from lblod.detail_fetcher import fetch_detail_urls
@@ -24,18 +23,6 @@ def fetch_last_successful_sequence_number():
         }
     else:
         raise Exception(f"Unexpected amount of sequence numbers stored in database: {len(result['results']['bindings'])}")
-
-def fetch_data_mutatiedienst(since=0):
-    try:
-        target_url = f"{MUTATIEDIENST_URL}?sinds={since}"
-        response = requests.get(target_url)
-        response.raise_for_status()
-        changes_json = response.json()
-        return changes_json
-    except HTTPError as http_err:
-        logger.error(f"HTTP error occurred: {http_err}")
-    except Exception as err:
-        logger.error(f"Other error occurred: {err}")
 
 def run_mutatiedienst_pipeline():
     if(any_other_harvest_jobs_running()):

@@ -7,6 +7,7 @@ import subprocess
 import json
 import glob
 from helpers import logger
+from constants import MUTATIEDIENST_URL
 
 def get_access_token():
     # required
@@ -120,3 +121,15 @@ def get_context(url):
         logger.error(f"An unexpected error occurred while fetching context from {url}: {e}")
 
     return None
+
+def fetch_data_mutatiedienst(since=0):
+    try:
+        target_url = f"{MUTATIEDIENST_URL}?sinds={since}"
+        response = requests.get(target_url)
+        response.raise_for_status()
+        changes_json = response.json()
+        return changes_json
+    except HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err}")
+    except Exception as err:
+        logger.error(f"Other error occurred: {err}")
