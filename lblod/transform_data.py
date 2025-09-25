@@ -2,7 +2,6 @@ import copy
 import os
 import json
 import uuid
-
 from helpers import logger
 
 def create_uuid_from_string(input_string):
@@ -114,6 +113,7 @@ def transform_data(data):
             #TODO: revise pipeline. It's okay to skip these here.
             logger.info(f"Found a {item['type']} for {item['vCode']}. Skipping")
             continue
+
         vereniging = copy.deepcopy(item)
         v_code = vereniging.get("vCode", "")
         primary_location = None
@@ -141,6 +141,11 @@ def transform_data(data):
                     sleutel["codeerSysteem"] = "vCode"
 
         # LOCATIES
+
+        if not 'locaties' in item:
+            logger.warning(f"We have found vereniging {v_code} with no location. Skipping import, since our apps rely on this")
+            continue
+
         for locatie in item["locaties"]:
             if "isPrimair" in locatie and locatie["isPrimair"]:
                 primary_location = create_location(locatie)
