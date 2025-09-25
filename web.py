@@ -8,14 +8,16 @@ from lblod.file import save_json_on_disk
 from lblod.job import load_task, update_task_status, TaskNotFoundException
 from lblod.harvester import get_harvest_collection_for_task, get_initial_remote_data_object
 from lblod.data_fetcher import fetch_vcodes
-from constants import OPERATIONS,
-  TASK_STATUSES,
-  MUTATIEDIENST_SYNC_INTERVAL_SECONDS,
-  MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW,
-  API_URL
-from helpers import logger, fetch_last_successful_sequence_number
+from constants import OPERATIONS, \
+    TASK_STATUSES, \
+    MUTATIEDIENST_SYNC_INTERVAL_SECONDS, \
+    MUTATIEDIENST_SYNC_INTERVAL_ACTIVITY_WINDOW, \
+    API_URL
 
-from lblod.mutatiedienst_scheduler import fetch_data_mutatiedienst, run_mutatiedienst_pipeline
+from lblod.helpers import fetch_data_mutatiedienst
+from lblod.mutatiedienst_scheduler import run_mutatiedienst_pipeline
+from helpers import logger
+
 
 AUTO_RUN = os.getenv("AUTO_RUN") in ["yes", "on", "true", True, "1", 1]
 DEFAULT_GRAPH = os.getenv(
@@ -80,7 +82,7 @@ def process_delta():
                 if task["operation"] == OPERATIONS["COLLECTING"]:
                     update_task_status(task["uri"], TASK_STATUSES["BUSY"])
 
-                    mutatiedienst_changes = fetch_last_successful_sequence_number();
+                    mutatiedienst_changes = fetch_data_mutatiedienst();
                     last_sequence = mutatiedienst_changes[-1]["sequence"] # Assumes it's a sorted list
 
                     collection = get_harvest_collection_for_task(task)

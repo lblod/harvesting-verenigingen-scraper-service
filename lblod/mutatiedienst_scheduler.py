@@ -1,5 +1,6 @@
 import os
-from helpers import logger, fetch_data_mutatiedienst
+from helpers import logger
+from lblod.helpers import fetch_data_mutatiedienst
 from sudo_query import query_sudo
 from lblod.job import create_job, create_task, load_task, update_task_status, any_other_harvest_jobs_running
 from lblod.detail_fetcher import fetch_detail_urls
