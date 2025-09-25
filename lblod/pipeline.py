@@ -16,7 +16,7 @@ from lblod.detail_fetcher import fetch_detail_urls
 from lblod.transform_data import transform_data
 import json
 
-def process_task(task, vcodes, api_url = os.environ["API_URL"], last_sequence = None):
+def process_task(task, vcodes, api_url = API_URL, last_sequence = None):
     try:
         if not vcodes:
             raise ValueError("No vCodes found for the given postal codes.")
