@@ -17,7 +17,7 @@ from constants import OPERATIONS, \
 from lblod.helpers import fetch_data_mutatiedienst
 from lblod.mutatiedienst_scheduler import run_mutatiedienst_pipeline
 from helpers import logger
-
+from sudo_query import query_sudo
 
 AUTO_RUN = os.getenv("AUTO_RUN") in ["yes", "on", "true", True, "1", 1]
 DEFAULT_GRAPH = os.getenv(
@@ -82,13 +82,14 @@ def process_delta():
                 if task["operation"] == OPERATIONS["COLLECTING"]:
                     update_task_status(task["uri"], TASK_STATUSES["BUSY"])
 
-                    mutatiedienst_changes = fetch_data_mutatiedienst();
-                    last_sequence = mutatiedienst_changes[-1]["sequence"] # Assumes it's a sorted list
-
+                    # Order matters here. We want the sequence before we start full sync
+                    #  It doesn't matter if the sequence still evolves meanwhile
+                    sequence_data = help_generate_mutatiedienst_new_sequence_object()
                     collection = get_harvest_collection_for_task(task)
                     rdo = get_initial_remote_data_object(collection)
                     vcodes = fetch_vcodes(task)
-                    data = process_task(task, vcodes, API_URL, last_sequence)
+
+                    data = process_task(task, vcodes, API_URL, sequence_data)
                     json_file_data = save_json_on_disk(data, rdo)
                     try:
                         save_json_file_in_triplestore(json_file_data)
@@ -105,3 +106,24 @@ def process_delta():
                 print(f"Task not found for {uri}")
     except Exception as e:
         print(f"An error occurred: {str(e)}")
+
+
+def help_generate_mutatiedienst_new_sequence_object():
+    # Get the URI of the MutatiedienstStateInfo
+    query_string = """
+      SELECT DISTINCT ?subject WHERE {
+         ?subject a <http://data.lblod.info/vocabularies/FeitelijkeVerenigingen/MutatiedienstStateInfo>.
+      }
+    """
+    result = query_sudo(query_string)
+    if not len(result["results"]["bindings"]) == 1:
+        raise Exception(f"Too many MutatiedienstStateInfo resources stored in database: {len(result['results']['bindings'])}")
+
+    subject = result["results"]["bindings"][0]["subject"]["value"]
+    mutatiedienst_changes = fetch_data_mutatiedienst();
+    last_sequence = mutatiedienst_changes[-1]["sequence"] # Assumes it's a sorted list
+
+    if not last_sequence:
+        raise Exception(f"No last sequence found from mutatiedienst. Failing full harvest.")
+
+    return { "@id": subject, "lastSequenceMutatiedienst": last_sequence }
