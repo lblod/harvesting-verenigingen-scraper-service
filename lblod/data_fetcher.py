@@ -112,6 +112,7 @@ def fetch_vcodes(task):
 
 
 def fetch_context(task):
+    # TODO: bring to environment variable.
     context_url = "https://publiek.verenigingen.staging-vlaanderen.be/v1/contexten/beheer/detail-vereniging-context.json"
 
     try:

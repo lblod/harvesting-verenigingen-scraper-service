@@ -6,6 +6,8 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+
+#TODO: WHAT IS THIS?
 import os
 
 IN_DOCKER = os.getenv("IN_DOCKER") in [True, "true", "True", "yes", "Yes"]
