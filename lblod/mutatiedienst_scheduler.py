@@ -26,7 +26,7 @@ def fetch_last_successful_sequence_number():
               "subject": result["results"]["bindings"][0]["subject"]["value"]
           }
     else:
-        raise Exception(f"Too manysequence numbers stored in database: {len(result['results']['bindings'])}")
+        raise Exception(f"Too many sequence numbers stored in database: {len(result['results']['bindings'])}")
 
 def run_mutatiedienst_pipeline():
     if(any_other_harvest_jobs_running()):
