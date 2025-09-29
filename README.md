@@ -40,7 +40,7 @@ This makes sure no updates are missed.
 - Feitelijke verenigingen: <https://data.vlaanderen.be/doc/applicatieprofiel/FeitelijkeVerenigingen/> (with some extensions)
 - Custom model: keeps track of last sync state
   Example:
-  ```
+```
 <http://data.lblod.info/id/283ea607-7d1d-4301-b4c7-cdd15f50f875>
   a <http://data.lblod.info/vocabularies/FeitelijkeVerenigingen/MutatiedienstStateInfo>;
  <http://purl.org/dc/terms/modified> "2025-09-22T17:00:00.00"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
