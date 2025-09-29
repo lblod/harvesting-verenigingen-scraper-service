@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 import os
 import time
 
@@ -21,7 +21,7 @@ def query_sudo(the_query):
     """Execute the given SPARQL query (select/ask/construct)on the triple store and returns the results
     in the given returnFormat (JSON by default)."""
     start = time.time()
-    logger.debug(f"started query at {datetime.datetime.now()}")
+    logger.debug(f"started query at {datetime.now(timezone.utc)}")
     logger.debug("execute query: \n" + the_query)
     sparqlQuery.setQuery(the_query)
     logger.debug(f"query took {time.time() - start} seconds")
@@ -35,22 +35,22 @@ def update_sudo(the_query, attempt=0, max_retries=5):
     if sparqlUpdate.isSparqlUpdateRequest():
         try:
             start = time.time()
-            logger.debug(f"started query at {datetime.datetime.now()}")
+            logger.debug(f"started query at {datetime.now(timezone.utc)}")
             logger.debug("execute query: \n" + the_query)
 
             sparqlUpdate.query()
 
             logger.debug(f"query took {time.time() - start} seconds")
         except Exception as e:
-            logger.warn(f"Executing query failed unexpectedly. Stacktrace:", e)
+            logger.warning(f"Executing query failed unexpectedly. Stacktrace:", e)
             if attempt <= max_retries:
                 wait_time = 0.6 * attempt + 30
-                logger.warn(f"Retrying after {wait_time} seconds [{attempt}/{max_retries}]")
+                logger.warning(f"Retrying after {wait_time} seconds [{attempt}/{max_retries}]")
                 time.sleep(wait_time)
 
                 update_sudo(the_query, attempt + 1, max_retries)
             else:
-                logger.warn(f"Max attempts reached for query. Skipping.")
+                logger.warning(f"Max attempts reached for query. Skipping.")
 
 
 def auth_update_sudo(the_query):
@@ -59,7 +59,7 @@ def auth_update_sudo(the_query):
     authSparqlUpdate.setQuery(the_query)
     if authSparqlUpdate.isSparqlUpdateRequest():
         start = time.time()
-        logger.debug(f"started query at {datetime.datetime.now()}")
+        logger.debug(f"started query at {datetime.now(timezone.utc)}")
         logger.debug("execute query: \n" + the_query)
 
         authSparqlUpdate.query()

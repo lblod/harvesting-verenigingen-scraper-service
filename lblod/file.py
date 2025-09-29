@@ -1,7 +1,12 @@
 import os
+import gzip
 from string import Template
+from datetime import datetime, timezone
 from escape_helpers import sparql_escape_uri, sparql_escape_string, sparql_escape_int, sparql_escape_datetime
-from constants import FILE_STATUSES
+from constants import FILE_STATUSES, RESOURCE_BASE, PREFIXES, DEFAULT_GRAPH, JOB_CREATOR_URI
+from helpers import generate_uuid
+from sudo_query import update_sudo
+
 MU_APPLICATION_GRAPH = os.environ.get("MU_APPLICATION_GRAPH")
 RELATIVE_STORAGE_PATH = os.environ.get("MU_APPLICATION_FILE_STORAGE_PATH", "").rstrip("/")
 STORAGE_PATH = f"/share/{RELATIVE_STORAGE_PATH}"
@@ -20,13 +25,7 @@ def construct_insert_file_query(file, physical_file, graph=MU_APPLICATION_GRAPH)
     :returns: string containing SPARQL query
     """
     query_template = Template("""
-PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
-PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
-PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
-PREFIX dct: <http://purl.org/dc/terms/>
-PREFIX dbpedia: <http://dbpedia.org/ontology/>
-PREFIX ndo: <http://oscaf.sourceforge.net/ndo.html#>
-PREFIX    adms: <http://www.w3.org/ns/adms#>
+    $prefixes
 
 DELETE {
     GRAPH $graph {
@@ -60,6 +59,7 @@ WHERE {
 }
 """)
     return query_template.substitute(
+        prefixes=PREFIXES,
         graph=sparql_escape_uri(graph),
         name=sparql_escape_string(file["name"]),
         mimetype=sparql_escape_string(file["mimetype"]),
@@ -84,3 +84,78 @@ def file_to_shared_uri(file_name):
         return f"share://{RELATIVE_STORAGE_PATH}/{file_name}"
     else:
         return f"share://{file_name}"
+
+def save_json_on_disk(content, rdo = None):
+    if not os.path.exists(STORAGE_PATH):
+        os.mkdir(STORAGE_PATH)
+
+    _uuid = generate_uuid()
+    json_file_name = f"{_uuid}.json.gz"
+    json_file_path = os.path.join(STORAGE_PATH, json_file_name)
+
+    with gzip.open(json_file_path, "wt", encoding="utf-8") as f:
+        f.write(content)
+
+    size = os.stat(json_file_path).st_size
+    file_created = datetime.now(timezone.utc)
+
+    adapter = {}
+    adapter["uuid"] = _uuid
+    adapter["size"] = size
+    adapter["file_created"] = file_created
+    adapter["extension"] = "json.gz"
+    adapter["format"] = "application/gzip"
+    adapter["physical_file_name"] = json_file_name
+    adapter["physical_file_path"] = json_file_path
+    if(rdo):
+        adapter["rdo"] = rdo
+    return adapter
+
+def save_json_file_in_triplestore(file_metadata):
+    """
+    Saves file metadata to a triplestore based on the provided file_metadata dictionary.
+
+    :param file_metadata: A dictionary containing file metadata, typically returned
+                          by a function like save_json_on_disk.
+    """
+    physical_file_uuid = file_metadata["uuid"]
+    physical_file_uri = file_to_shared_uri(file_metadata["physical_file_name"])
+    physical_file_name = file_metadata["physical_file_name"]
+    file_size = file_metadata["size"]
+    current_time = datetime.now(timezone.utc)
+
+    logical_file_uuid = generate_uuid()
+    logical_file_uri = RESOURCE_BASE + logical_file_uuid
+
+    file_format = file_metadata["format"]
+    file_extension = file_metadata["extension"]
+    logical_file_name = f"{logical_file_uuid}.{file_extension}"
+
+    query = f"""
+    {PREFIXES}
+    INSERT DATA {{
+      GRAPH {sparql_escape_uri(DEFAULT_GRAPH)} {{
+          {sparql_escape_uri(physical_file_uri)} a nfo:FileDataObject;
+                                           nie:dataSource {sparql_escape_uri(logical_file_uri)} ;
+                                           mu:uuid {sparql_escape_string(physical_file_uuid)};
+                                           nfo:fileName {sparql_escape_string(physical_file_name)} ;
+                                           dct:creator {sparql_escape_uri(JOB_CREATOR_URI)};
+                                           dct:created {sparql_escape_datetime(current_time)};
+                                           dct:modified {sparql_escape_datetime(current_time)};
+                                           dct:format {sparql_escape_string(file_format)};
+                                           nfo:fileSize {sparql_escape_int(file_size)};
+                                           dbpedia:fileExtension {sparql_escape_string(file_extension)}.
+          {sparql_escape_uri(logical_file_uri)} a nfo:FileDataObject;
+                                           mu:uuid {sparql_escape_string(logical_file_uuid)};
+                                           nfo:fileName {sparql_escape_string(logical_file_name)} ;
+                                           dct:creator {sparql_escape_uri(JOB_CREATOR_URI)};
+                                           dct:created {sparql_escape_datetime(current_time)};
+                                           dct:modified {sparql_escape_datetime(current_time)};
+                                           dct:format {sparql_escape_string(file_format)};
+                                           nfo:fileSize {sparql_escape_int(file_size)};
+                                           dbpedia:fileExtension {sparql_escape_string(file_extension)} .
+      }}
+    }}
+    """
+    update_sudo(query)
+    return logical_file_uri

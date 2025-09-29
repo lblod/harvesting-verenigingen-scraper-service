@@ -7,16 +7,19 @@ import subprocess
 import json
 import glob
 from helpers import logger
+from constants import MUTATIEDIENST_URL
 
 def get_access_token():
-    client_id = os.environ["CLIENT_ID"]
-    environment = os.environ["MODE"]
+    # required
     aud = os.environ["AUD"]
-    host = os.environ["HOST"]
     scope = os.environ["SCOPE"]
 
-    if(environment != "PROD"):
-        authorization_key = os.environ["AUTHORIZATION_KEY"]
+    # optional
+    client_id = os.environ.get("CLIENT_ID")
+    host = os.environ.get("HOST")
+    authorization_key = os.environ.get("AUTHORIZATION_KEY")
+
+    if authorization_key:
         url = f"{aud}/v1/token"
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -99,7 +102,8 @@ def get_context(url):
             "ere": "http://data.lblod.info/vocabularies/erediensten/",
             "adresvoorstelling": "locn:fullAddress",
             "datumLaatsteAanpassing": "pav:lastUpdateOn",
-            "etag": "pav:version"
+            "etag": "pav:version",
+            "lastSequenceMutatiedienst": "http://data.lblod.info/vocabularies/FeitelijkeVerenigingen/lastSequenceMutatiedienst"
         })
 
         logger.info(f"Successfully fetched and updated context from {url}")
@@ -117,3 +121,15 @@ def get_context(url):
         logger.error(f"An unexpected error occurred while fetching context from {url}: {e}")
 
     return None
+
+def fetch_data_mutatiedienst(since=0):
+    try:
+        target_url = f"{MUTATIEDIENST_URL}?sinds={since}"
+        response = requests.get(target_url)
+        response.raise_for_status()
+        changes_json = response.json()
+        return changes_json
+    except HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err}")
+    except Exception as err:
+        logger.error(f"Other error occurred: {err}")
