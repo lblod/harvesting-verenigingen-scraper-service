@@ -6,22 +6,40 @@ from lblod.helpers import get_access_token, get_context
 import uuid
 from helpers import logger
 from lblod.job import update_task_status
-from constants import TASK_STATUSES
-
-api_url = os.environ["API_URL"]
+from constants import (
+    TASK_STATUSES,
+    FEATURE_MITIGATE_API_LIMIT_WITH_AND_QUERY,
+    VERENIGINGS_TYPES,
+    API_URL
+)
 
 
 def fetch_data(access_token, postcode, limit=100):
+    url = f"{API_URL}verenigingen/zoeken?q=locaties.postcode:{postcode}"
+    max_retries = 5
+
+    # Check if feature flag is enabled
+    if FEATURE_MITIGATE_API_LIMIT_WITH_AND_QUERY:
+        # Use AND queries (split by organization type) for all postal codes
+        logger.info(f"Feature flag enabled. Using AND queries for postcode {postcode}.")
+        return _fetch_by_organization_type(access_token, postcode, limit, max_retries)
+    else:
+        # Original behavior without feature flag
+        return _fetch_with_pagination(url, access_token, postcode, limit, max_retries)
+
+
+def _fetch_with_pagination(url, access_token, postcode, limit, max_retries):
+    """Fetch data using pagination for queries with <= 1000 results"""
     correlation_id = uuid.uuid4()
-    logger.info(f"x-correlation-id: {correlation_id}")
-    url = f"{api_url}verenigingen/zoeken?q=locaties.postcode:{postcode}"
+    logger.info(f"Fetching data with pagination for postcode {postcode}, x-correlation-id: {correlation_id}")
+
     headers = {
         "Authorization": f"Bearer {access_token}",
         "x-correlation-id": str(correlation_id),
     }
+
     offset = 0
     v_codes = []
-    max_retries = 5
 
     while True:
         pagination_params = f"&offset={offset}&limit={limit}"
@@ -72,6 +90,28 @@ def fetch_data(access_token, postcode, limit=100):
                     f"An unexpected error occurred for postcode {postcode}, correlation_id: {correlation_id}: {e}"
                 )
                 raise
+
+
+def _fetch_by_organization_type(access_token, postcode, limit, max_retries):
+    """Fetch data by splitting query into multiple requests per organization type"""
+    all_v_codes = []
+
+    for vt in VERENIGINGS_TYPES:
+        logger.info(f"Fetching for postcode {postcode} and organization type {vt}")
+        url = f"{API_URL}verenigingen/zoeken?q=locaties.postcode:{postcode} AND verenigingstype.code:{vt}"
+
+        try:
+            v_codes = _fetch_with_pagination(url, access_token, postcode, limit, max_retries)
+            all_v_codes.extend(v_codes)
+            logger.info(f"Fetched {len(v_codes)} v_codes for organization type {vt}")
+        except Exception as e:
+            logger.error(
+                f"Error fetching data for postcode {postcode} and organization type {vt}: {e}"
+            )
+            raise
+
+    logger.info(f"Total v_codes fetched for postcode {postcode}: {len(all_v_codes)}")
+    return all_v_codes
 
 
 def fetch_vcodes(task):
