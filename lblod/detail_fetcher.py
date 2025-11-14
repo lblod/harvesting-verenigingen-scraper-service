@@ -8,6 +8,7 @@ from lblod.job import update_task_status
 from constants import TASK_STATUSES
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry # type: ignore
+import time
 
 api_url = os.environ["API_URL"]
 
@@ -50,7 +51,7 @@ def fetch_detail_url(access_token, v_code, task):
             logger.error(f"Timeout error occurred for vCode {v_code}, correlation_id: {correlation_id}: {timeout_err}")
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred for vCode {v_code}, correlation_id: {correlation_id}: {http_err}")
-            break
+            # Retry for HTTP errors (401, 429, 502, 503, etc.) as the API may be under heavy load
         except requests.exceptions.RequestException as req_err:
             logger.error(f"Request exception occurred for vCode {v_code}, correlation_id: {correlation_id}: {req_err}")
             break
@@ -58,7 +59,13 @@ def fetch_detail_url(access_token, v_code, task):
             logger.error(f"An unexpected error occurred for vCode {v_code}, correlation_id: {correlation_id}: {e}")
             break
 
-        logger.info(f"Retrying... ({attempt + 1}/{retry_attempts})")
+        if attempt < retry_attempts - 1:
+            # Exponential backoff: wait longer between each retry
+            sleep_time = 2 ** attempt  # 1s, 2s, 4s, 8s, 16s
+            logger.info(f"Retrying in {sleep_time}s... (attempt {attempt + 1}/{retry_attempts})")
+            time.sleep(sleep_time)
+        else:
+            logger.info(f"Max retries reached for vCode {v_code}")
 
     logger.error(f"Encountered exception while trying to fetch details for vCode: {v_code}, correlation_id: {correlation_id}")
     update_task_status(task["uri"], TASK_STATUSES["FAILED"])
