@@ -106,7 +106,8 @@ def is_removed_resource_response(response):
         'detail': 'Source: Deze vereniging werd verwijderd.',
         'status': 404
     }
-    if int(response.get('status')) == removed_resource_response_template.get('status')\
+    status = response.get('status')
+    if status is not None and int(status) == removed_resource_response_template.get('status')\
        and response.get('type') == removed_resource_response_template.get('type')\
        and response.get('detail') == removed_resource_response_template.get('detail'):
         return True
