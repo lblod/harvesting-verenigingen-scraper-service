@@ -1,20 +1,13 @@
 import json
-import datetime
-import os
-import uuid
-import gzip
 
-from constants import DEFAULT_GRAPH, TASK_STATUSES, MUTATIEDIENST_URL, API_URL
+from constants import DEFAULT_GRAPH, TASK_STATUSES, API_URL
 
-from lblod.file import STORAGE_PATH, construct_insert_file_query
 from lblod.harvester import collection_has_collected_files, create_results_container
 from lblod.job import update_task_status
-from sudo_query import update_sudo
 from helpers import logger
-from lblod.data_fetcher import fetch_vcodes, fetch_context
+from lblod.data_fetcher import fetch_context
 from lblod.detail_fetcher import fetch_detail_urls
 from lblod.transform_data import transform_data
-import json
 
 def process_task(task, vcodes, api_url = API_URL, last_sequence = None):
     try:

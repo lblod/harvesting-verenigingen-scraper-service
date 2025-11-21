@@ -3,7 +3,6 @@ import os
 import jwt
 from datetime import datetime, timedelta
 import uuid
-import subprocess
 import json
 import glob
 from helpers import logger

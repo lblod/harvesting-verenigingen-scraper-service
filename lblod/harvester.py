@@ -2,7 +2,7 @@ from string import Template
 
 from escape_helpers import sparql_escape_uri, sparql_escape_string, sparql_escape_datetime
 from helpers import logger, generate_uuid
-from sudo_query import auth_update_sudo, update_sudo, query_sudo
+from sudo_query import update_sudo, query_sudo
 import uuid
 from datetime import datetime, timezone
 import re
