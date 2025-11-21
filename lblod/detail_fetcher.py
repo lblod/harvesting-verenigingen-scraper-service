@@ -5,7 +5,7 @@ from lblod.helpers import get_access_token
 import uuid
 from helpers import logger
 from lblod.job import update_task_status
-from constants import TASK_STATUSES
+from constants import TASK_STATUSES, FEATURE_SKIP_UNEXPECTED_RESPONSE_FROM_SOURCE
 import time
 api_url = os.environ["API_URL"]
 
@@ -53,11 +53,26 @@ def fetch_detail_url(access_token, v_code, task):
 
             response = http_err.response
             fail_body = try_json_from_request_response(response) or {}
+
+            # Handle 429 rate limit error - retry with exponential backoff
+            if response.status_code == 429:
+                if attempt < retry_attempts - 1:
+                    sleep_time = 5 * (2 ** attempt)  # Exponential backoff: 5, 10, 20, 40 seconds
+                    logger.warning(f"Rate limit hit (429) for vCode {v_code}. Retrying in {sleep_time} seconds... (attempt {attempt + 1}/{retry_attempts})")
+                    time.sleep(sleep_time)
+                    continue
+                else:
+                    logger.error(f"Rate limit (429) persisted after {retry_attempts} attempts for vCode {v_code}")
+                    break
+
             if is_removed_resource_response(fail_body):
                 logger.warning(f"We've found a removed vCode {v_code}. Skipping.")
                 # TODO: we need to revise the pipeline.
                 #   For now we created an adhoc object so we can work with this further down the line.
                 return { "type": 'RemovedResource', "vCode": v_code }
+            elif FEATURE_SKIP_UNEXPECTED_RESPONSE_FROM_SOURCE and is_unexpected_gateway_response(fail_body):
+                logger.warning(f"We've found an unexpected gateway response for vCode {v_code}. Skipping.")
+                return { "type": 'UnexpectedResponse', "vCode": v_code }
             else:
                 logger.error(f"Unexpected http error: {str(fail_body)}")
 
@@ -108,6 +123,17 @@ def is_removed_resource_response(response):
     if status is not None and int(status) == removed_resource_response_template.get('status')\
        and response.get('type') == removed_resource_response_template.get('type')\
        and response.get('detail') == removed_resource_response_template.get('detail'):
+        return True
+    else:
+        return False
+
+def is_unexpected_gateway_response(response):
+    unexpected_gateway_response_template = {
+        'title': 'Bad Gateway',
+        'detail': 'Unexpected response from the source'
+    }
+    if response.get('title') == unexpected_gateway_response_template.get('title')\
+       and response.get('detail') == unexpected_gateway_response_template.get('detail'):
         return True
     else:
         return False

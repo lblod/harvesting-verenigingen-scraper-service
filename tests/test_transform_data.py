@@ -115,25 +115,29 @@ def test_transform_data_basic():
 
 
 def test_transform_data_removed_resource():
-    """Test transform_data with a removed resource"""
+    """Test transform_data with a removed resource and unexpected response"""
 
     test_data = [
         {
             "type": "RemovedResource",
             "vCode": "V9999999"
+        },
+        {
+            "type": "UnexpectedResponse",
+            "vCode": "V8888888"
         }
     ]
 
     result = transform_data(test_data)
 
     print("\n" + "=" * 80)
-    print("REMOVED RESOURCE TEST")
+    print("REMOVED RESOURCE & UNEXPECTED RESPONSE TEST")
     print("=" * 80)
     print(f"Input items: {len(test_data)}")
     print(f"Output items: {len(result)}")
-    print("✓ Removed resources are correctly skipped")
+    print("✓ Removed resources and unexpected responses are correctly skipped")
 
-    assert len(result) == 0, "Removed resources should be skipped"
+    assert len(result) == 0, "Removed resources and unexpected responses should be skipped"
 
     return result
 

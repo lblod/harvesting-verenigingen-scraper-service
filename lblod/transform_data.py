@@ -109,9 +109,9 @@ def transform_data(data):
         return new_representative
 
     for item in data:
-        if item.get("type") == "RemovedResource":
+        if item.get("type") in ["RemovedResource", "UnexpectedResponse"]:
             #TODO: revise pipeline. It's okay to skip these here.
-            logger.info(f"Found a {item['type']} for {item['vCode']}. Skipping")
+            logger.info(f"Found a {item['type']} for {item.get('vCode', 'unknown')}. Skipping")
             continue
 
         vereniging = copy.deepcopy(item)

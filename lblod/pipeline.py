@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from constants import DEFAULT_GRAPH, TASK_STATUSES, API_URL
 
@@ -8,6 +9,8 @@ from helpers import logger
 from lblod.data_fetcher import fetch_context
 from lblod.detail_fetcher import fetch_detail_urls
 from lblod.transform_data import transform_data
+from lblod.file import construct_insert_file_query
+from sudo_query import update_sudo
 
 def process_task(task, vcodes, api_url = API_URL, last_sequence = None):
     try:
