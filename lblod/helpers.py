@@ -9,7 +9,38 @@ import glob
 from helpers import logger
 from constants import MUTATIEDIENST_URL
 
+# Cache for authentication response
+# Structure: { "access_token": "...", "expires_in": 3600, "request_datetime": datetime(...) }
+_cached_authentication = None
+
+def get_cached_token():
+    """
+    Returns a valid cached access token if available, otherwise None.
+    A token is valid if it exists, has request_datetime and expires_in,
+    and has not expired (with a 60 second margin).
+    """
+    if _cached_authentication and _cached_authentication.get("access_token") and _cached_authentication.get("request_datetime") and _cached_authentication.get("expires_in"):
+        issued_at = _cached_authentication["request_datetime"]
+        expires_in = int(_cached_authentication["expires_in"])
+        now = datetime.now()
+        # 60 seconds margin
+        expiry = issued_at + timedelta(seconds=expires_in - 60)
+        if now < expiry:
+            return _cached_authentication["access_token"]
+
+    return None
+
 def get_access_token():
+    global _cached_authentication
+
+    # First, try to return a valid cached token
+    cached_token = get_cached_token()
+    if cached_token:
+        return cached_token
+
+    # If no valid cached token, proceed to fetch a new one
+    print("Fetching new access token...")
+
     # required
     aud = os.environ["AUD"]
     scope = os.environ["SCOPE"]
@@ -29,7 +60,14 @@ def get_access_token():
 
         response = requests.post(url, headers=headers, data=data)
         if response.status_code == 200:
-            return response.json().get("access_token")
+            response_json = response.json()
+            # Cache the full response with request datetime
+            _cached_authentication = {
+                "access_token": response_json.get("access_token"),
+                "expires_in": response_json.get("expires_in"),
+                "request_datetime": datetime.now()
+            }
+            return response_json.get("access_token")
         else:
             print("Error:", response.status_code)
             return None
@@ -62,20 +100,31 @@ def get_access_token():
         if(key_test):
             token = jwt.encode(payload, key_test, algorithm="RS256")
 
-            curl_command = [
-                "curl", "-v", "-X", "POST", f"https://{host}/op/v1/token",
-                "-H", "Accept: application/json",
-                "-H", "Content-Type: application/x-www-form-urlencoded",
-                "--data-urlencode", "grant_type=client_credentials",
-                "--data-urlencode", "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-                "--data-urlencode", f"scope={scope}",
-                "--data-urlencode", f"client_assertion={token}"
-            ]
-            curl_request_str = ' '.join(curl_command)
-            print("\nCurl request:\n", curl_request_str)
-            result = subprocess.run(curl_command, capture_output=True, text=True)
-            access_token = json.loads(result.stdout)['access_token']
-            return access_token
+            url = f"https://{host}/op/v1/token"
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
+            data = {
+                "grant_type": "client_credentials",
+                "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+                "scope": scope,
+                "client_assertion": token
+            }
+
+            response = requests.post(url, headers=headers, data=data)
+            if response.status_code == 200:
+                response_json = response.json()
+                # Cache the full response with request datetime
+                _cached_authentication = {
+                    "access_token": response_json.get("access_token"),
+                    "expires_in": response_json.get("expires_in"),
+                    "request_datetime": datetime.now()
+                }
+                return response_json.get("access_token")
+            else:
+                print("Error:", response.status_code)
+                return None
 
 
 def get_context(url):

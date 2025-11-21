@@ -82,10 +82,9 @@ def fetch_detail_url(access_token, v_code, task):
 
 def fetch_detail_urls(all_vcodes, task):
     try:
-        access_token = get_access_token()
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             results = list(
-                executor.map(lambda v_code: fetch_detail_url(access_token, v_code, task), all_vcodes)
+                executor.map(lambda v_code: fetch_detail_url(get_access_token(), v_code, task), all_vcodes)
             )
     except Exception as e:
         logger.error(f"Unexpected error while fetching association detail URLs: {e}")
