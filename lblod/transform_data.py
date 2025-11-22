@@ -184,7 +184,7 @@ def transform_data(data):
                     "@id": "http://lblod.data.gift/concepts/3d790fd9-bec9-43dd-840c-f835eda6997e"
                 }
             elif formatted_status == "dubbel":
-                logger.warning(f"We have found vereniging {v_code} which is marked as 'Dubbel'. Skipping import, since our apps rely on this")
+                logger.warning(f"We have found vereniging {v_code} which is marked as 'Dubbel'. Skipping import - will be removed from application")
                 continue
 
         if not primary_location:
