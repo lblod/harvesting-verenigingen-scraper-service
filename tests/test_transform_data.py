@@ -143,15 +143,25 @@ def test_transform_data_removed_resource():
 
 
 def test_transform_data_no_location():
-    """Test transform_data with missing location (should skip)"""
+    """Test transform_data with missing location or empty location array (should skip)"""
 
     test_data = [
         {
             "vCode": "V0005678",
-            "naam": "Test Without Location",
+            "naam": "Test With Empty Location Array",
             "verenigingstype": {"code": "FWB"},
             "sleutels": [{"codeerSysteem": "Vcode", "waarde": "V0005678"}],
-            # No locaties field
+            # Empty locaties field
+            "locaties": [],
+            "status": "Actief",
+            "metadata": {"datumLaatsteAanpassing": "2024-01-15T10:30:00Z"}
+        },
+        {
+            "vCode": "V0005679",
+            "naam": "Test Without Location Field",
+            "verenigingstype": {"code": "FWB"},
+            "sleutels": [{"codeerSysteem": "Vcode", "waarde": "V0005679"}],
+            # No locaties field at all
             "status": "Actief",
             "metadata": {"datumLaatsteAanpassing": "2024-01-15T10:30:00Z"}
         }
@@ -160,13 +170,14 @@ def test_transform_data_no_location():
     result = transform_data(test_data)
 
     print("\n" + "=" * 80)
-    print("NO LOCATION TEST")
+    print("NO LOCATION TEST (EMPTY ARRAY & MISSING FIELD)")
     print("=" * 80)
     print(f"Input items: {len(test_data)}")
     print(f"Output items: {len(result)}")
-    print("✓ Items without location are correctly skipped")
+    print("✓ Items with empty location array are correctly skipped")
+    print("✓ Items without location field are correctly skipped")
 
-    assert len(result) == 0, "Items without location should be skipped"
+    assert len(result) == 0, "Items without location or with empty location array should be skipped"
 
     return result
 
@@ -216,6 +227,143 @@ def test_transform_data_duplicate_status():
     assert len(result) == 0, "Items with 'Dubbel' status should be skipped"
 
     return result
+
+
+def test_transform_data_postal_code_outside_region():
+    """Test transform_data with postal codes outside Flanders or Brussels (should skip)"""
+
+    test_data = [
+        {
+            "vCode": "V0001112",
+            "naam": "Test Outside Region",
+            "verenigingstype": {"code": "FWB"},
+            "sleutels": [{"codeerSysteem": "Vcode", "waarde": "V0001112"}],
+            "locaties": [
+                {
+                    "@id": "loc1",
+                    "locatieId": "12345",
+                    "@type": "Locatie",
+                    "naam": "Hoofdzetel",
+                    "locatietype": "Maatschappelijke zetel volgens KBO",
+                    "isPrimair": True,
+                    "adres": {
+                        "straatnaam": "Rue de Test",
+                        "huisnummer": "10",
+                        "postcode": "4000",  # Liège - Wallonia, not Flanders or Brussels
+                        "gemeente": "Liège"
+                    },
+                    "adresvoorstelling": "Rue de Test 10, 4000 Liège"
+                }
+            ],
+            "status": "Actief",
+            "metadata": {"datumLaatsteAanpassing": "2024-01-15T10:30:00Z"}
+        }
+    ]
+
+    result = transform_data(test_data)
+
+    print("\n" + "=" * 80)
+    print("POSTAL CODE OUTSIDE REGION TEST")
+    print("=" * 80)
+    print(f"Input items: {len(test_data)}")
+    print(f"Output items: {len(result)}")
+    print("✓ Items with all postal codes outside Flanders or Brussels are correctly skipped")
+
+    assert len(result) == 0, "Items with postal codes outside Flanders or Brussels should be skipped"
+
+    return result
+
+
+def test_transform_data_opted_out_of_public_stream():
+    """Test transform_data with isUitgeschrevenUitPubliekeDatastroom=True (should skip)"""
+
+    test_data = [
+        {
+            "vCode": "V0001314",
+            "naam": "Test Opted Out",
+            "verenigingstype": {"code": "FWB"},
+            "sleutels": [{"codeerSysteem": "Vcode", "waarde": "V0001314"}],
+            "locaties": [
+                {
+                    "@id": "loc1",
+                    "locatieId": "12345",
+                    "@type": "Locatie",
+                    "naam": "Hoofdzetel",
+                    "locatietype": "Maatschappelijke zetel volgens KBO",
+                    "isPrimair": True,
+                    "adres": {
+                        "straatnaam": "Privéstraat",
+                        "huisnummer": "99",
+                        "postcode": "1000",
+                        "gemeente": "Brussel"
+                    },
+                    "adresvoorstelling": "Privéstraat 99, 1000 Brussel"
+                }
+            ],
+            "isUitgeschrevenUitPubliekeDatastroom": True,
+            "status": "Actief",
+            "metadata": {"datumLaatsteAanpassing": "2024-01-15T10:30:00Z"}
+        }
+    ]
+
+    result = transform_data(test_data)
+
+    print("\n" + "=" * 80)
+    print("OPTED OUT OF PUBLIC STREAM TEST")
+    print("=" * 80)
+    print(f"Input items: {len(test_data)}")
+    print(f"Output items: {len(result)}")
+    print("✓ Items opted out of public data stream are correctly skipped")
+
+    assert len(result) == 0, "Items with isUitgeschrevenUitPubliekeDatastroom=True should be skipped"
+
+    return result
+
+
+def test_transform_data_valid_flanders_postal_code():
+    """Test transform_data with valid Flanders postal code (should process)"""
+
+    test_data = [
+        {
+            "vCode": "V0001516",
+            "naam": "Test Flanders Valid",
+            "verenigingstype": {"code": "FWB"},
+            "sleutels": [{"codeerSysteem": "Vcode", "waarde": "V0001516"}],
+            "locaties": [
+                {
+                    "@id": "loc1",
+                    "locatieId": "12345",
+                    "@type": "Locatie",
+                    "naam": "Hoofdzetel",
+                    "locatietype": "Maatschappelijke zetel volgens KBO",
+                    "isPrimair": True,
+                    "adres": {
+                        "straatnaam": "Gentstraat",
+                        "huisnummer": "5",
+                        "postcode": "9000",  # Gent - Flanders
+                        "gemeente": "Gent"
+                    },
+                    "adresvoorstelling": "Gentstraat 5, 9000 Gent"
+                }
+            ],
+            "status": "Actief",
+            "metadata": {"datumLaatsteAanpassing": "2024-01-15T10:30:00Z"}
+        }
+    ]
+
+    result = transform_data(test_data)
+
+    print("\n" + "=" * 80)
+    print("VALID FLANDERS POSTAL CODE TEST")
+    print("=" * 80)
+    print(f"Input items: {len(test_data)}")
+    print(f"Output items: {len(result)}")
+    print("✓ Items with valid Flanders postal codes are correctly processed")
+
+    assert len(result) == 1, "Items with valid Flanders postal codes should be processed"
+    assert result[0]["vCode"] == "V0001516", "vCode mismatch"
+
+    return result
 if __name__ == "__main__":
     print("\n" + "╔" + "=" * 78 + "╗")
     print("║" + " " * 20 + "RUNNING TRANSFORM DATA TESTS" + " " * 30 + "║")
@@ -227,6 +375,9 @@ if __name__ == "__main__":
         test_transform_data_removed_resource()
         test_transform_data_no_location()
         test_transform_data_duplicate_status()
+        test_transform_data_postal_code_outside_region()
+        test_transform_data_opted_out_of_public_stream()
+        test_transform_data_valid_flanders_postal_code()
 
         print("\n" + "╔" + "=" * 78 + "╗")
         print("║" + " " * 25 + "ALL TESTS PASSED ✓" + " " * 35 + "║")
