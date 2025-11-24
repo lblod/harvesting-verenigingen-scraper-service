@@ -44,10 +44,6 @@ def is_valid_association_data(item):
         if formatted_status == "dubbel":
             return (False, f"Vereniging {v_code} is marked as 'Dubbel'")
 
-    # Check if association is opted out of public data stream
-    if item.get("isUitgeschrevenUitPubliekeDatastroom") is True:
-        return (False, f"Vereniging {v_code} is opted out of public data stream")
-
     return (True, None)
 
 
