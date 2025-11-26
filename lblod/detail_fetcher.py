@@ -9,6 +9,7 @@ from constants import TASK_STATUSES, FEATURE_SKIP_UNEXPECTED_RESPONSE_FROM_SOURC
 import time
 api_url = os.environ["API_URL"]
 
+def fetch_detail_url(v_code):
 
 def fetch_detail_url(v_code, task):
     url = f"{api_url}verenigingen/{v_code}"
@@ -98,7 +99,7 @@ def fetch_detail_urls(all_vcodes, task):
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             results = list(
-                executor.map(lambda v_code: fetch_detail_url(v_code, task), all_vcodes)
+                executor.map(lambda v_code: fetch_detail_url(v_code), all_vcodes)
             )
     except Exception as e:
         logger.error(f"Unexpected error while fetching association detail URLs: {e}")
