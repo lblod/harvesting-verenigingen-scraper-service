@@ -2,6 +2,7 @@ import copy
 import os
 import json
 import uuid
+from functools import lru_cache
 from helpers import logger
 
 def create_uuid_from_string(input_string):
@@ -9,6 +10,41 @@ def create_uuid_from_string(input_string):
         generated_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, input_string)
         return generated_uuid
     return ""
+
+
+def is_valid_association_data(item):
+    """
+    Validates an item and returns a tuple (is_valid, reason).
+
+    Returns:
+        (True, None) if the item is valid and should be processed
+        (False, reason_string) if the item is invalid and should be skipped
+    """
+    v_code = item.get("vCode", "unknown")
+
+    # Check for removed resources or unexpected responses. i.e. 404 or 502 responses
+    if item.get("type") in ["RemovedResource", "UnexpectedResponse"]:
+        return (False, f"Found a {item['type']} for {v_code}")
+
+    # Check for missing or empty location
+    if 'locaties' not in item or not item.get('locaties'):
+        return (False, f"Vereniging {v_code} has no location")
+
+    # Check if all location postal codes are outside Flanders or Brussels
+    locaties = item.get("locaties", [])
+    if locaties and all(
+        not is_postal_code_in_flanders_or_brussels(locatie.get("adres", {}).get("postcode"))
+        for locatie in locaties
+    ):
+        return (False, f"Vereniging {v_code} has no locations in Flanders or Brussels")
+
+    # Check for "Dubbel" status
+    if "status" in item:
+        formatted_status = item["status"].strip().lower()
+        if formatted_status == "dubbel":
+            return (False, f"Vereniging {v_code} is marked as 'Dubbel'")
+
+    return (True, None)
 
 
 def transform_data(data):
@@ -109,9 +145,9 @@ def transform_data(data):
         return new_representative
 
     for item in data:
-        if item.get("type") == "RemovedResource":
-            #TODO: revise pipeline. It's okay to skip these here.
-            logger.info(f"Found a {item['type']} for {item['vCode']}. Skipping")
+        is_valid, invalid_reason = is_valid_association_data(item)
+        if not is_valid:
+            logger.info(f"{invalid_reason}. Skipping")
             continue
 
         vereniging = copy.deepcopy(item)
@@ -141,11 +177,6 @@ def transform_data(data):
                     sleutel["codeerSysteem"] = "vCode"
 
         # LOCATIES
-
-        if 'locaties' not in item:
-            logger.warning(f"We have found vereniging {v_code} with no location. Skipping import, since our apps rely on this")
-            continue
-
         for locatie in item["locaties"]:
             if "isPrimair" in locatie and locatie["isPrimair"]:
                 primary_location = create_location(locatie)
@@ -217,3 +248,31 @@ def transform_data(data):
             vereniging["status"] = status
         transformed_data.append(vereniging)
     return transformed_data
+
+
+
+
+@lru_cache(maxsize=1)
+def _load_postal_codes():
+    """Load postal codes from JSON file and cache the result."""
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    json_file_path = os.path.join(current_directory, "postal_codes.json")
+
+    with open(json_file_path, "r") as file:
+        postal_codes_data = json.load(file)
+
+    # Create a set for O(1) lookup performance
+    valid_postal_codes = set(
+        postal_codes_data.get("postal_codes_brussels", []) +
+        postal_codes_data.get("postal_codes_flanders", [])
+    )
+    return valid_postal_codes
+
+
+def is_postal_code_in_flanders_or_brussels(postal_code):
+    # Normalize postal_code to string for comparison
+    postal_code_str = str(postal_code).strip()
+
+    # Check if postal code is in the cached set
+    valid_postal_codes = _load_postal_codes()
+    return postal_code_str in valid_postal_codes

@@ -4,7 +4,7 @@ from string import Template
 
 from helpers import generate_uuid
 from escape_helpers import sparql_escape_uri, sparql_escape_datetime, sparql_escape_string, sparql_escape_int
-from sudo_query import auth_update_sudo, update_sudo, query_sudo
+from sudo_query import update_sudo, query_sudo
 
 from constants import PREFIXES, RESOURCE_BASE, JOB_TYPE, TASK_TYPE, TASK_STATUSES, DEFAULT_GRAPH, JOB_CREATOR_URI, OPERATIONS
 
