@@ -9,96 +9,100 @@ from constants import TASK_STATUSES, FEATURE_SKIP_UNEXPECTED_RESPONSE_FROM_SOURC
 import time
 api_url = os.environ["API_URL"]
 
-
-def fetch_detail_url(v_code, task):
-    url = f"{api_url}verenigingen/{v_code}"
+def fetch_detail_url(v_code):
     correlation_id = uuid.uuid4()
-    access_token = get_access_token()
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "x-correlation-id": str(correlation_id)
-    }
     retry_attempts = 5
-
     for attempt in range(retry_attempts):
-
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            response.raise_for_status()
-
-            data = response.json()
-            etag = response.headers.get("etag")
-            association = data.get("vereniging")
-            metadata = data.get("metadata")
-
-            if etag is None:
-                message = f"""The association data response did not have an ETag.
-                  This header is required. vCode: {v_code}, correlation_id: {correlation_id}"""
-                raise Exception(message)
-
-            if association is not None:
-                association["etag"] = etag
-                association["metadata"] = metadata
-                logger.info(f"Successfully fetched data for vCode: {v_code}")
-                return association
-            else:
-                message = f"No association data found for vCode: {v_code}, correlation_id: {correlation_id}"
-                raise Exception(message)
-
-        except requests.exceptions.ConnectionError as conn_err:
-            logger.error(f"Connection error occurred for vCode {v_code}, correlation_id: {correlation_id}: {conn_err}")
-        except requests.exceptions.Timeout as timeout_err:
-            logger.error(f"Timeout error occurred for vCode {v_code}, correlation_id: {correlation_id}: {timeout_err}")
-        except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP error occurred for vCode {v_code}, correlation_id: {correlation_id}: {http_err}")
-
-            response = http_err.response
-            fail_body = try_json_from_request_response(response) or {}
-
-            # Handle 429 rate limit error - retry with exponential backoff
-            if response.status_code == 429:
-                if attempt < retry_attempts - 1:
-                    sleep_time = 5 * (2 ** attempt)  # Exponential backoff: 5, 10, 20, 40 seconds
-                    logger.warning(f"Rate limit hit (429) for vCode {v_code}. Retrying in {sleep_time} seconds... (attempt {attempt + 1}/{retry_attempts})")
-                    time.sleep(sleep_time)
-                    continue
-                else:
-                    logger.error(f"Rate limit (429) persisted after {retry_attempts} attempts for vCode {v_code}")
-                    break
-
-            if is_removed_resource_response(fail_body):
-                logger.warning(f"We've found a removed vCode {v_code}. Skipping.")
-                # TODO: we need to revise the pipeline.
-                #   For now we created an adhoc object so we can work with this further down the line.
-                return { "type": 'RemovedResource', "vCode": v_code }
-            elif FEATURE_SKIP_UNEXPECTED_RESPONSE_FROM_SOURCE and is_unexpected_gateway_response(fail_body):
-                logger.warning(f"We've found an unexpected gateway response for vCode {v_code}. Skipping.")
-                return { "type": 'UnexpectedResponse', "vCode": v_code }
-            else:
-                logger.error(f"Unexpected http error: {str(fail_body)}")
-
-            break
-        except requests.exceptions.RequestException as req_err:
-            logger.error(f"Request exception occurred for vCode {v_code}, correlation_id: {correlation_id}: {req_err}")
-            break
-        except Exception as e:
-            logger.error(f"An unexpected error occurred for vCode {v_code}, correlation_id: {correlation_id}: {e}")
-            break
+        result = try_fetch_detail(v_code, correlation_id)
+        if result:
+            return result
 
         logger.info(f"Retrying... ({attempt + 1}/{retry_attempts})")
-        sleep_time = 5
-        logger.info(f"Sleeping ${sleep_time} seconds")
-        time.sleep(sleep_time)
+        exponential_backoff_sleep(attempt, retry_attempts)
+        correlation_id = uuid.uuid4() # Generate a new correlation ID for each retry
 
     error_message = f"Encountered exception while trying to fetch details for vCode: {v_code}, correlation_id: {correlation_id}"
     logger.error(error_message)
     raise Exception(error_message)
 
+def try_fetch_detail(v_code, correlation_id):
+    url = f"{api_url}verenigingen/{v_code}"
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "x-correlation-id": str(correlation_id)
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        data = response.json()
+        etag = response.headers.get("etag")
+        association = data.get("vereniging")
+        metadata = data.get("metadata")
+
+        if etag is None:
+            message = f"""The association data response did not have an ETag.
+              This header is required. vCode: {v_code}, correlation_id: {correlation_id}"""
+            raise Exception(message)
+
+        if association is not None:
+            association["etag"] = etag
+            association["metadata"] = metadata
+            logger.info(f"Successfully fetched data for vCode: {v_code}")
+            return association
+        else:
+            message = f"No association data found for vCode: {v_code}, correlation_id: {correlation_id}"
+            raise Exception(message)
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred for vCode {v_code}, correlation_id: {correlation_id}: {http_err}")
+        logger.error(f"Starting rescue procedure for {v_code}, correlation_id: {correlation_id}: {http_err}")
+
+        # Rescue procedure
+        response = http_err.response
+        fail_body = try_json_from_request_response(response) or {}
+
+        if response.status_code == 429:
+            logger.warning(f"Rate limit hit (429) for vCode {v_code}")
+
+        elif is_removed_resource_response(fail_body):
+            logger.warning(f"We've found a removed vCode {v_code}. Skipping.")
+            # TODO: we need to revise the pipeline.
+            #   For now we created an adhoc object so we can work with this further down the line.
+            return { "type": 'RemovedResource', "vCode": v_code }
+
+        elif FEATURE_SKIP_UNEXPECTED_RESPONSE_FROM_SOURCE and is_unexpected_gateway_response(fail_body):
+            logger.warning(f"We've found an unexpected gateway response for vCode {v_code}. Skipping.")
+            return { "type": 'UnexpectedResponse', "vCode": v_code }
+
+        else:
+          logger.error(f"Unexpected http error: {str(fail_body)}")
+
+    except requests.exceptions.ConnectionError as conn_err:
+        logger.error(f"Connection error occurred for vCode {v_code}, correlation_id: {correlation_id}: {conn_err}")
+
+    except requests.exceptions.Timeout as timeout_err:
+        logger.error(f"Timeout error occurred for vCode {v_code}, correlation_id: {correlation_id}: {timeout_err}")
+
+    except requests.exceptions.RequestException as req_err:
+        logger.error(f"Request exception occurred for vCode {v_code}, correlation_id: {correlation_id}: {req_err}")
+
+    except Exception as e:
+        logger.error(f"An unexpected error occurred for vCode {v_code}, correlation_id: {correlation_id}: {e}")
+
+    return None
+
+def exponential_backoff_sleep(attempt, retry_attempts):
+    sleep_time = 5 * (2 ** attempt)  # Exponential backoff: 5, 10, 20, 40 seconds
+    logger.warning(f" Retrying in {sleep_time} seconds... (attempt {attempt + 1}/{retry_attempts})")
+    time.sleep(sleep_time)
+
 def fetch_detail_urls(all_vcodes, task):
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
             results = list(
-                executor.map(lambda v_code: fetch_detail_url(v_code, task), all_vcodes)
+                executor.map(lambda v_code: fetch_detail_url(v_code), all_vcodes)
             )
     except Exception as e:
         logger.error(f"Unexpected error while fetching association detail URLs: {e}")
