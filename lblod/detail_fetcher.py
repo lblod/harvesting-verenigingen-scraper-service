@@ -19,6 +19,7 @@ def fetch_detail_url(v_code):
 
         logger.info(f"Retrying... ({attempt + 1}/{retry_attempts})")
         exponential_backoff_sleep(attempt, retry_attempts)
+        correlation_id = uuid.uuid4() # Generate a new correlation ID for each retry
 
     error_message = f"Encountered exception while trying to fetch details for vCode: {v_code}, correlation_id: {correlation_id}"
     logger.error(error_message)
