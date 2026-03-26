@@ -30,7 +30,8 @@ def try_fetch_detail(v_code, correlation_id):
     access_token = get_access_token()
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "x-correlation-id": str(correlation_id)
+        "x-correlation-id": str(correlation_id),
+        "VR-Api-Version": "v2"
     }
     try:
         response = requests.get(url, headers=headers, timeout=30)

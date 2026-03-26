@@ -159,16 +159,20 @@ def transform_data(data):
         status = None
 
         # ASSOCIATION TYPES
+        # With VR-Api-Version v2, non-KBO associations return
+        # verenigingstype.code = "VZER" and the actual type in
+        # verenigingssubtype.code (FV/SUB/NB).
+        # For KBO types (VZW, IVZW, PS, SVON) there is no subtype.
+        verenigingstype = vereniging.get("verenigingstype", {})
+        verenigingssubtype = vereniging.get("verenigingssubtype", {})
+        effective_code = verenigingssubtype.get("code") if verenigingssubtype else verenigingstype.get("code", "")
+
         for assoc_type in association_types:
-            if "code" in assoc_type and "@id" in assoc_type:
-                verenigingstype = vereniging.get(
-                    "verenigingstype", {}
-                )  # Use get() with a default empty dictionary
-                if "code" in verenigingstype and assoc_type[
-                    "code"
-                ] == verenigingstype.get("code", ""):
-                    verenigingstype["@id"] = assoc_type.get("@id", "")
-                    vereniging["verenigingstype"] = verenigingstype
+            if assoc_type.get("code") == effective_code:
+                verenigingstype["@id"] = assoc_type.get("@id", "")
+                verenigingstype["code"] = effective_code
+                vereniging["verenigingstype"] = verenigingstype
+                break
 
         # IDENTIFIERS
         for sleutel in vereniging["sleutels"]:
