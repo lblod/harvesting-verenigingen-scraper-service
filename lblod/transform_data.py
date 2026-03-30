@@ -5,6 +5,7 @@ import uuid
 from functools import lru_cache
 from helpers import logger
 
+
 def create_uuid_from_string(input_string):
     if input_string:
         generated_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, input_string)
@@ -27,13 +28,15 @@ def is_valid_association_data(item):
         return (False, f"Found a {item['type']} for {v_code}")
 
     # Check for missing or empty location
-    if 'locaties' not in item or not item.get('locaties'):
+    if "locaties" not in item or not item.get("locaties"):
         return (False, f"Vereniging {v_code} has no location")
 
     # Check if all location postal codes are outside Flanders or Brussels
     locaties = item.get("locaties", [])
     if locaties and all(
-        not is_postal_code_in_flanders_or_brussels(locatie.get("adres", {}).get("postcode"))
+        not is_postal_code_in_flanders_or_brussels(
+            locatie.get("adres", {}).get("postcode")
+        )
         for locatie in locaties
     ):
         return (False, f"Vereniging {v_code} has no locations in Flanders or Brussels")
@@ -53,7 +56,6 @@ def transform_data(data):
     with open(json_file_path, "r") as file:
         association_types = json.load(file)
     transformed_data = []
-
 
     def create_location(locatie):
         # pull the address-register URI if available
@@ -133,9 +135,13 @@ def transform_data(data):
         }
 
         if representative_data.get("isPrimair", False):
-            new_representative["primaireVertegenwoordiger"] = { "@id": "lblodconcept:75e74415-35cf-4da5-bac5-b72a1c137799" }
+            new_representative["primaireVertegenwoordiger"] = {
+                "@id": "lblodconcept:75e74415-35cf-4da5-bac5-b72a1c137799"
+            }
         else:
-            new_representative["primaireVertegenwoordiger"] = { "@id": "lblodconcept:78451ac5-ec0b-469d-b918-0a8ef92a77b2" }
+            new_representative["primaireVertegenwoordiger"] = {
+                "@id": "lblodconcept:78451ac5-ec0b-469d-b918-0a8ef92a77b2"
+            }
 
         contact_info = representative_data.get("vertegenwoordigerContactgegevens", [])
         if contact_info:
@@ -165,7 +171,11 @@ def transform_data(data):
         # For KBO types (VZW, IVZW, PS, SVON) there is no subtype.
         verenigingstype = vereniging.get("verenigingstype", {})
         verenigingssubtype = vereniging.get("verenigingssubtype", {})
-        effective_code = verenigingssubtype.get("code") if verenigingssubtype else verenigingstype.get("code", "")
+        effective_code = (
+            verenigingssubtype.get("code")
+            if verenigingssubtype
+            else verenigingstype.get("code", "")
+        )
 
         for assoc_type in association_types:
             if assoc_type.get("code") == effective_code:
@@ -233,7 +243,9 @@ def transform_data(data):
                     if locatie.get("locatieType", {}).get("naam") == "Correspondentie":
                         primary_location = locatie
                         break
-
+                # Note: `else None` won't happen since such associations are
+                # currently rejected by the validation function, but we keep it
+                # here as a fallback for future-proofing
                 if not primary_location:
                     primary_location = locaties[0] if locaties else None
 
@@ -254,8 +266,6 @@ def transform_data(data):
     return transformed_data
 
 
-
-
 @lru_cache(maxsize=1)
 def _load_postal_codes():
     """Load postal codes from JSON file and cache the result."""
@@ -267,8 +277,8 @@ def _load_postal_codes():
 
     # Create a set for O(1) lookup performance
     valid_postal_codes = set(
-        postal_codes_data.get("postal_codes_brussels", []) +
-        postal_codes_data.get("postal_codes_flanders", [])
+        postal_codes_data.get("postal_codes_brussels", [])
+        + postal_codes_data.get("postal_codes_flanders", [])
     )
     return valid_postal_codes
 
