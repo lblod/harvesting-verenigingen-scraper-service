@@ -16,8 +16,12 @@
         "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/a601c493-26f5-5a1e-9016-adb301973a36"
     },
     {
-        "code": "AFD",
-        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/da22fc58-2cde-5326-a07a-b890f761de93"
+        "code": "SUB",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/5c9ca00c-48ea-47f4-b5b3-e71ea83cde68"
+    },
+    {
+        "code": "NB",
+        "@id": "http://data.vlaanderen.be/id/conceptscheme/VerenigingClassificatieCode/f18372a8-f576-4233-b70c-84044f66b2f8"
     },
     {
         "code": "SVON",
