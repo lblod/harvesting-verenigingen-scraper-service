@@ -47,83 +47,65 @@ def get_access_token():
     # optional
     client_id = os.environ.get("CLIENT_ID")
     host = os.environ.get("HOST")
-    authorization_key = os.environ.get("AUTHORIZATION_KEY")
 
-    if authorization_key:
-        url = f"{aud}/v1/token"
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Authorization": "Basic " + authorization_key,
-        }
-        data = {"grant_type": "client_credentials", "scope": scope}
+    iat = datetime.now().astimezone()
+    exp = iat + timedelta(minutes=9)
 
-        response = requests.post(url, headers=headers, data=data)
-        if response.status_code == 200:
-            response_json = response.json()
-            # Cache the full response with request datetime
-            _cached_authentication = {
-                "access_token": response_json.get("access_token"),
-                "expires_in": response_json.get("expires_in"),
-                "request_datetime": datetime.now()
-            }
-            return response_json.get("access_token")
+    payload = {
+        "iss": client_id,
+        "sub": client_id,
+        "aud": aud,
+        "exp": int(exp.timestamp()),
+        "jti": str(uuid.uuid4()),
+        "iat": int(iat.timestamp())
+    }
+    config_path = '/config'
+    key_test = None
+    if os.path.exists(config_path):
+        pem_files = glob.glob(os.path.join(config_path, '*.pem'))
+
+        if pem_files:
+            first_pem_file = pem_files[0]
+            with open(first_pem_file, 'r') as file:
+                key_test = file.read()
+            print("First .pem file read successfully.")
         else:
-            print("Error:", response.status_code)
-            return None
+            print("No .pem files found in the directory.")
     else:
-        iat = datetime.now().astimezone()
-        exp = iat + timedelta(minutes=9)
+        print(f"Directory '{config_path}' does not exist.")
 
-        payload = {
-            "iss": client_id,
-            "sub": client_id,
-            "aud": aud,
-            "exp": int(exp.timestamp()),
-            "jti": str(uuid.uuid4()),
-            "iat": int(iat.timestamp())
+    if not key_test:
+        raise RuntimeError(
+            f"No .pem signing key found in '{config_path}'; cannot mint JWT client assertion."
+        )
+
+    token = jwt.encode(payload, key_test, algorithm="RS256")
+
+    url = f"https://{host}/op/v1/token"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    data = {
+        "grant_type": "client_credentials",
+        "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        "scope": scope,
+        "client_assertion": token
+    }
+
+    response = requests.post(url, headers=headers, data=data)
+    if response.status_code == 200:
+        response_json = response.json()
+        # Cache the full response with request datetime
+        _cached_authentication = {
+            "access_token": response_json.get("access_token"),
+            "expires_in": response_json.get("expires_in"),
+            "request_datetime": datetime.now()
         }
-        config_path = '/config'
-        if os.path.exists(config_path):
-            pem_files = glob.glob(os.path.join(config_path, '*.pem'))
-
-            if pem_files:
-                first_pem_file = pem_files[0]
-                with open(first_pem_file, 'r') as file:
-                    key_test = file.read()
-                print("First .pem file read successfully.")
-            else:
-                print("No .pem files found in the directory.")
-        else:
-            print(f"Directory '{config_path}' does not exist.")
-
-        if(key_test):
-            token = jwt.encode(payload, key_test, algorithm="RS256")
-
-            url = f"https://{host}/op/v1/token"
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-            }
-            data = {
-                "grant_type": "client_credentials",
-                "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-                "scope": scope,
-                "client_assertion": token
-            }
-
-            response = requests.post(url, headers=headers, data=data)
-            if response.status_code == 200:
-                response_json = response.json()
-                # Cache the full response with request datetime
-                _cached_authentication = {
-                    "access_token": response_json.get("access_token"),
-                    "expires_in": response_json.get("expires_in"),
-                    "request_datetime": datetime.now()
-                }
-                return response_json.get("access_token")
-            else:
-                print("Error:", response.status_code)
-                return None
+        return response_json.get("access_token")
+    else:
+        print("Error:", response.status_code)
+        return None
 
 
 def get_context(url):
